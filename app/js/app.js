@@ -3,10 +3,11 @@ Vue.use( Toasted, {
 } )
 
 new Vue( {
+
     el: '#app',
 
     data: {
-        user: 'andre',
+        user: '',
         domain: '@kihlstroms.se',
         pin: '',
         mailsent: false,
@@ -16,7 +17,7 @@ new Vue( {
 
         async sendCode() {
 
-            const mail = this.user + this.domain
+            const user = this.user
 
             try
             {
@@ -29,15 +30,19 @@ new Vue( {
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify( { mail, redirect } )
+                    body: JSON.stringify( { user, redirect } )
                 } )
 
                 const data = await response.json()
 
                 if ( data.success )
                 {
-                    this.mailsent = true
                     this.pin = data.pin
+
+                    setTimeout( () => {
+                        this.mailsent = true
+                    }, 10 )
+
                     this.$toasted.show( data.success )
                 }
             }
@@ -49,7 +54,7 @@ new Vue( {
 
         async verifyCode() {
 
-            const mail = this.user + this.domain
+            const user = this.user
             const pin = this.pin
 
             try
@@ -59,7 +64,7 @@ new Vue( {
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify( { mail, pin } )
+                    body: JSON.stringify( { user, pin } )
                 } )
                 const data = await response.json()
 
@@ -68,8 +73,8 @@ new Vue( {
                     console.log( data.success )
                     const redirectUrl = `${data.success.redirect}?session=${data.success.token}`
 
-                    this.$toasted.show( 'Authenticated' )
-                    this.$toasted.show( `Redirecting... ${redirectUrl}` )
+                    this.$toasted.show( 'Authenticated...' )
+                    this.$toasted.show( `Redirecting...` )
 
                     setTimeout( () => {
                         window.location.href = redirectUrl
@@ -84,7 +89,23 @@ new Vue( {
             {
                 this.$toasted.show( err.message )
             }
-        }
+        },
 
-    }
+    },
+
+    watch: {
+
+        mailsent( newVal ) {
+            if ( newVal )
+            {
+                this.$nextTick( () => {
+                    if ( this.$refs.pinInput )
+                    {
+                        this.$refs.pinInput.focus()
+                    }
+                } )
+            }
+        }
+    },
+
 } )

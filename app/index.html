@@ -6,6 +6,7 @@
     <title>Authenticate</title>
     <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon">
     <link rel=stylesheet href=https://early.webawesome.com/webawesome@3.0.0-beta.6/dist/styles/webawesome.css />
+    <link rel=stylesheet href="/css/style.css" />
     <meta name=viewport content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
     <script src=https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js></script>
@@ -16,40 +17,35 @@
 
     <div id=app>
 
-        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -75%);">
+        <div class="card">
 
-            <h4>
-                Login required
-            </h4>
+            <h3>
+                Authentication required
+            </h3>
 
             <br>
 
-            <div class="wa-split wa-gap-xs wa-align-center wa-justify-center">
+            <div class="wa-split wa-gap-m" style="align-items: end;">
 
                 <div class=wa-stack v-if="!mailsent">
-                    <div class=wa-caption-s>User</div>
+                    <div class=wa-body-s>My email</div>
                     <div style="position: relative; display: flex; align-items: center;">
-                        <input v-model=user placeholder="john.doe" style="min-width: 250px;" :style="{width: 180 + (user.length * 6.5) + 'px' }" />
+                        <input v-model=user placeholder="john.doe" style="min-width: 250px;" :style="{width: 180 + (user.length * 6.5) + 'px' }" @keyup.enter="user && $refs.myButton1.focus()" autofocus />
                         <span class=wa-caption-l style="position: absolute; right: var(--wa-space-s); pointer-events: none;">@kihlstroms.se</span>
                     </div>
                 </div>
-
                 <div class=wa-stack v-else>
-                    <div class=wa-caption-s>Verification</div>
+                    <div class=wa-body-s>Verification Pin</div>
                     <div>
-                        <input v-model=pin placeholder="code" style="min-width: 250px;" />
+                        <input v-model=pin placeholder="code" style="min-width: 250px;" @keyup.enter="pin && $refs.myButton2.focus()" ref="pinInput" autofocus />
                     </div>
                 </div>
 
-            </div>
-            <br>
-
-            <div>
-                <button @click=sendCode :disabled="!user.trim().length" v-if="!mailsent">
-                    Send login code
+                <button class="wa-size-m wa-brand" ref=myButton1 @click=sendCode :readonly="!user.length" v-if="!mailsent">
+                    Send login mail
                 </button>
-                <button @click=verifyCode :disabled="!pin.trim().length" v-else>
-                    Verify
+                <button class="wa-size-m wa-brand" ref=myButton2 @click=verifyCode :readonly="!pin.length" v-else>
+                    Verify pin
                 </button>
             </div>
 

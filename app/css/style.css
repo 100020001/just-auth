@@ -1,0 +1,18 @@
+:root {
+  --wa-color-brand-fill-loud: var(--wa-color-brand-40);
+  --wa-color-brand-border-loud: var(--wa-color-brand-fill-loud);
+  --wa-form-control-border-color: var(--wa-color-border-normal);
+}
+.card {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: var(--wa-space-3xl);
+  border-radius: var(--wa-border-radius-l);
+  box-shadow: var(--wa-shadow-s);
+  border: 1px solid var(--wa-color-surface-lowered);
+}
+button[readonly] {
+  pointer-events: none;
+}
