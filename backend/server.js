@@ -32,7 +32,7 @@ app.post( '/login', async c => {
     console.log( `Send PIN ${pin} to mail: ${mail}` )
 
     // TODO: Dont send pin when live
-    return c.json( { success: `Pin code (${pin}) sent!` } )
+    return c.json( { success: `Pin code sent!`, pin } )
 } )
 
 app.post( '/verify-pin', async c => {

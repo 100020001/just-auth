@@ -37,6 +37,7 @@ new Vue( {
                 if ( data.success )
                 {
                     this.mailsent = true
+                    this.pin = data.pin
                     this.$toasted.show( data.success )
                 }
             }
@@ -65,13 +66,14 @@ new Vue( {
                 if ( !data.error )
                 {
                     console.log( data.success )
+                    const redirectUrl = `${data.success.redirect}?session=${data.success.token}`
 
                     this.$toasted.show( 'Authenticated' )
-                    this.$toasted.show( `Redirecting... ${data.success.redirect}?session=${data.success.token}` )
+                    this.$toasted.show( `Redirecting... ${redirectUrl}` )
 
                     setTimeout( () => {
-                        window.location.href = data.success.redirect
-                    }, 2000 )
+                        window.location.href = redirectUrl
+                    }, 1000 )
                 }
                 else
                 {
