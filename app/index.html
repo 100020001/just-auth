@@ -16,7 +16,7 @@
 
     <div id=app>
 
-        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -75%);">
 
             <h4>
                 Login required
@@ -25,25 +25,33 @@
             <br>
 
             <div class="wa-split wa-gap-xs wa-align-center wa-justify-center">
-                <div class="wa-stack">
-                    <label for="user-input" class="wa-caption-s">User</label>
+
+                <div class=wa-stack v-if="!mailsent">
+                    <div class=wa-caption-s>User</div>
                     <div style="position: relative; display: flex; align-items: center;">
-                        <input id="user-input" v-model=user placeholder="john.doe" style="min-width: 250px;" :style="{width: 180 + (user.length * 6.5) + 'px' }" />
+                        <input v-model=user placeholder="john.doe" style="min-width: 250px;" :style="{width: 180 + (user.length * 6.5) + 'px' }" />
                         <span class="wa-caption-l" style="position: absolute; right: var(--wa-space-s); pointer-events: none;">@kihlstroms.se</span>
                     </div>
                 </div>
+
+                <div class=wa-stack v-else>
+                    <div class=wa-caption-s>Verification</div>
+                    <div>
+                        <input v-model=pin placeholder="code" style="min-width: 250px;" />
+                    </div>
+                </div>
+
             </div>
             <br>
 
             <div>
-                <button @click="sendLoginCode" :disabled="!user.trim().length">
+                <button @click=sendCode :disabled="!user.trim().length" v-if="!mailsent">
                     Send login code
                 </button>
+                <button @click=verifyCode :disabled="!pin.trim().length" v-else>
+                    Verify
+                </button>
             </div>
-
-            <br>
-            <br>
-            <br>
 
         </div>
 
