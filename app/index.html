@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html class=wa-light>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Authenticate</title>
+    <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon">
+    <link rel=stylesheet href="https://early.webawesome.com/webawesome@3.0.0-beta.6/dist/styles/webawesome.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-toasted@1.1.28/dist/vue-toasted.min.js"></script>
+</head>
+
+<body>
+
+    <div id=app>
+
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+
+            <h4>
+                Login required
+            </h4>
+
+            <br>
+
+            <div class="wa-split wa-gap-xs wa-align-center wa-justify-center">
+                <div class="wa-stack">
+                    <label for="user-input" class="wa-caption-s">User</label>
+                    <div style="position: relative; display: flex; align-items: center;">
+                        <input id="user-input" v-model=user placeholder="john.doe" style="min-width: 250px;" :style="{width: 180 + (user.length * 6.5) + 'px' }" />
+                        <span class="wa-caption-l" style="position: absolute; right: var(--wa-space-s); pointer-events: none;">@kihlstroms.se</span>
+                    </div>
+                </div>
+            </div>
+            <br>
+
+            <div>
+                <button @click="sendLoginCode" :disabled="!user.trim().length">
+                    Send login code
+                </button>
+            </div>
+
+            <br>
+            <br>
+            <br>
+
+        </div>
+
+    </div>
+
+    <script src="/js/app.js"></script>
+
+</body>
+
+</html>
