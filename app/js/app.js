@@ -69,9 +69,9 @@ new Vue( {
                     this.$toasted.show( 'Authenticated' )
                     this.$toasted.show( `Redirecting... ${data.success.redirect}?session=${data.success.token}` )
 
-                    // setTimeout(() => {
-                    //     window.location.href = data.success.redirect
-                    // }, 2000)
+                    setTimeout( () => {
+                        window.location.href = data.success.redirect
+                    }, 2000 )
                 }
                 else
                 {
