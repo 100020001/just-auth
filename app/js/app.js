@@ -38,6 +38,11 @@ new Vue( {
 
     methods: {
 
+        cleanUser() {
+
+            this.user = this.user.split( '@' )[ 0 ]
+        },
+
         async sendCode() {
 
             const user = this.user
