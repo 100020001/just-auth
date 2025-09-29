@@ -6,7 +6,6 @@ import { Resend } from 'resend'
 import path from 'path'
 
 
-const secret = 'mySecretKey123'
 const authMap = new Map()
 
 app.use( serveStatic( { root: path.resolve( process.cwd(), 'app' ) } ) )
@@ -23,7 +22,7 @@ app.post( '/login', async c => {
         redirect,
         exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30, // 1 month in seconds
     }
-    const token = await sign( payload, secret )
+    const token = await sign( payload, process.env.JWT_SECRET )
 
     // Store token and PIN by mail
     authMap.set( mail, { token, pin, redirect } )
@@ -63,8 +62,7 @@ app.post( '/verify-pin', async c => {
     // Verify token
     try
     {
-        const secret = 'mySecretKey123'
-        await verify( entry.token, secret )
+        await verify( entry.token, process.env.JWT_SECRET )
     }
     catch ( e )
     {
