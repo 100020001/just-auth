@@ -41,7 +41,7 @@ new Vue( {
 
                     setTimeout( () => {
                         this.mailsent = true
-                    }, 10 )
+                    }, 100 )
 
                     this.$toasted.show( data.success )
                 }
