@@ -20,22 +20,27 @@
         <div class="card">
 
             <h3>
-                Authentication required
+                Authentication Required
             </h3>
+
+            <p>
+                The site <b>{{ redirectDomain }}</b> requires verification.<br>
+                Please enter your email to continue login.
+            </p>
 
             <br>
 
             <div class="wa-split wa-gap-m" style="align-items: end;">
 
-                <div class=wa-stack v-if="!mailsent">
-                    <div class=wa-body-s>My email</div>
+                <div class="wa-stack wa-gap-xs" v-if="!mailsent">
+                    <div class=wa-caption-m>My email</div>
                     <div style="position: relative; display: flex; align-items: center;">
                         <input v-model=user placeholder="john.doe" style="min-width: 250px;" :style="{width: 180 + (user.length * 6.5) + 'px' }" @keyup.enter="user && $refs.myButton1.focus()" autofocus />
                         <span class=wa-caption-l style="position: absolute; right: var(--wa-space-s); pointer-events: none;">@kihlstroms.se</span>
                     </div>
                 </div>
-                <div class=wa-stack v-else>
-                    <div class=wa-body-s>Verification Pin</div>
+                <div class="wa-stack wa-gap-xs" v-else>
+                    <div class=wa-caption-m>Verification Pin</div>
                     <div>
                         <input v-model=pin placeholder="code" style="min-width: 250px;" @keyup.enter="pin && $refs.myButton2.focus()" ref="pinInput" autofocus />
                     </div>

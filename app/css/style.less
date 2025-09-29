@@ -4,15 +4,26 @@
     --wa-form-control-border-color: var(--wa-color-border-normal);
 }
 
+html {
+    background-image: linear-gradient(135deg, rgb(253, 252, 251) 0%, rgb(226, 209, 195) 100%);
+}
+
 .card {
     position: absolute;
-    top: 40%;
+    top: 45%;
     left: 50%;
     transform: translate(-50%, -50%);
-    padding: var(--wa-space-3xl);
     border-radius: var(--wa-border-radius-l);
     box-shadow: var(--wa-shadow-s);
-    border: 1px solid var(--wa-color-surface-lowered);
+    background-color: var(--wa-color-surface-default);
+
+    @media screen and (orientation: landscape) {
+        padding: var(--wa-space-3xl);
+    }
+
+    @media screen and (orientation: portrait) {
+        padding: var(--wa-space-xl);
+    }
 }
 
 button {

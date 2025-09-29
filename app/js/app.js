@@ -13,6 +13,29 @@ new Vue( {
         mailsent: false,
     },
 
+    computed: {
+
+        redirect() {
+            const params = new URLSearchParams( window.location.search )
+            return params.get( 'redirect' )
+        },
+
+        redirectDomain() {
+
+            if ( !this.redirect ) return ''
+
+            try
+            {
+                const url = new URL( this.redirect )
+                return url.hostname
+            }
+            catch ( e )
+            {
+                return ''
+            }
+        }
+    },
+
     methods: {
 
         async sendCode() {
@@ -21,16 +44,12 @@ new Vue( {
 
             try
             {
-                // Get the 'redirect' query param from the URL
-                const params = new URLSearchParams( window.location.search )
-                const redirect = params.get( 'redirect' )
-
                 const response = await fetch( '/login', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify( { user, redirect } )
+                    body: JSON.stringify( { user, redirect: this.redirect } )
                 } )
 
                 const data = await response.json()
