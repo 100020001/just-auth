@@ -2,27 +2,30 @@
   --wa-color-brand-fill-loud: var(--wa-color-brand-40);
   --wa-color-brand-border-loud: var(--wa-color-brand-fill-loud);
   --wa-form-control-border-color: var(--wa-color-border-normal);
+  --wa-color-focus: var(--wa-color-purple-50);
 }
-html {
-  background-image: linear-gradient(135deg, #fdfcfb 0%, #e2d1c3 100%);
+@media screen and (orientation: landscape) {
+  html {
+    background-color: var(--wa-color-surface-lowered);
+  }
 }
-.card {
-  position: absolute;
-  top: 45%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  border-radius: var(--wa-border-radius-l);
-  box-shadow: var(--wa-shadow-s);
-  background-color: var(--wa-color-surface-default);
+#app {
+  height: 100dvh;
+  justify-items: center;
 }
 @media screen and (orientation: landscape) {
   .card {
+    background-color: var(--wa-color-surface-raised);
+    border-radius: var(--wa-border-radius-l);
+    box-shadow: var(--wa-shadow-s);
+    outline: 0.5pt solid var(--wa-color-purple-50);
+    margin-bottom: 10dvh;
     padding: var(--wa-space-3xl);
   }
 }
 @media screen and (orientation: portrait) {
   .card {
-    padding: var(--wa-space-xl);
+    padding: var(--wa-space-2xl);
   }
 }
 button[readonly] {

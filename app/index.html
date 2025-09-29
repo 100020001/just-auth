@@ -15,7 +15,7 @@
 
 <body>
 
-    <div id=app>
+    <div id=app class="wa-grid wa-align-items-center">
 
         <div class="card">
 
@@ -36,7 +36,7 @@
                     <div class=wa-caption-m>My email</div>
                     <div style="position: relative; display: flex; align-items: center;">
                         <input v-model=user placeholder="john.doe" style="min-width: 250px;" :style="{width: 180 + (user.length * 6.5) + 'px' }" @keyup.enter="user && $refs.myButton1.focus()" autofocus />
-                        <span class=wa-caption-l style="position: absolute; right: var(--wa-space-s); pointer-events: none;">@kihlstroms.se</span>
+                        <span class=wa-caption-l style="position: absolute; right: var(--wa-form-control-padding-inline); pointer-events: none;">@kihlstroms.se</span>
                     </div>
                 </div>
                 <div class="wa-stack wa-gap-xs" v-else>
@@ -46,10 +46,10 @@
                     </div>
                 </div>
 
-                <button class="wa-size-m wa-brand" ref=myButton1 @click=sendCode :readonly="!user.length" v-if="!mailsent">
+                <button class="wa-size-m wa-neutral" ref=myButton1 @click=sendCode :readonly="!user.length" v-if="!mailsent">
                     Send login mail
                 </button>
-                <button class="wa-size-m wa-brand" ref=myButton2 @click=verifyCode :readonly="!pin.length" v-else>
+                <button class="wa-size-m wa-neutral" ref=myButton2 @click=verifyCode :readonly="!pin.length" v-else>
                     Verify pin
                 </button>
             </div>
