@@ -1,8 +1,10 @@
 import { Hono } from 'hono'
+const app = new Hono()
 import { serveStatic } from 'hono/bun'
 import { sign, verify } from 'hono/jwt'
+import { Resend } from 'resend'
 import path from 'path'
-const app = new Hono()
+
 
 const secret = 'mySecretKey123'
 const authMap = new Map()
@@ -19,25 +21,37 @@ app.post( '/login', async c => {
     const payload = {
         mail,
         redirect,
-        exp: Math.floor( Date.now() / 1000 ) + 60 * 10,
+        exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30, // 1 month in seconds
     }
     const token = await sign( payload, secret )
 
     // Store token and PIN by mail
     authMap.set( mail, { token, pin, redirect } )
 
-    // TODO:Sned real mail
-    console.log( `Send PIN to mail: ${mail}` )
+    // Send mail with Resend
+    try
+    {
+        const resend = new Resend( process.env.RESEND_API_KEY )
+        await resend.emails.send( {
+            from: 'no-reply@banarne.com',
+            to: mail,
+            subject: 'Your OTP Code',
+            html: `<p>Your OTP code is: <b>${pin}</b></p>`
+        } )
+    }
+    catch ( err )
+    {
+        return c.json( { error: 'Failed to send email' }, 500 )
+    }
 
-    // TODO: Dont send pin when live
-    return c.json( { success: `OTP code sent to ${mail}`, pin } )
+    return c.json( { success: `OTP code sent to ${mail}` } )
 } )
 
 app.post( '/verify-pin', async c => {
 
     const { user, pin } = await c.req.json()
     const mail = user + '@kihlstroms.se'
-    
+
     const entry = authMap.get( mail )
 
     if ( !entry )

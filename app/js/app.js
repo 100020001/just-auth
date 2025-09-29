@@ -56,13 +56,8 @@ new Vue( {
 
                 if ( data.success )
                 {
-                    this.pin = data.pin
-
-                    setTimeout( () => {
-                        this.mailsent = true
-                    }, 100 )
-
                     this.$toasted.show( data.success )
+                    this.mailsent = true
                 }
             }
             catch ( err )
@@ -89,15 +84,11 @@ new Vue( {
 
                 if ( !data.error )
                 {
-                    console.log( data.success )
-                    const redirectUrl = `${data.success.redirect}?session=${data.success.token}`
-
                     this.$toasted.show( 'Authenticated...' )
                     this.$toasted.show( `Redirecting...` )
-
                     setTimeout( () => {
-                        window.location.href = redirectUrl
-                    }, 1000 )
+                        window.location.href = `${data.success.redirect}?session=${data.success.token}`
+                    }, 500 )
                 }
                 else
                 {
