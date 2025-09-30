@@ -1,9 +1,5 @@
 :root {
-    --wa-color-brand-fill-loud: var(--wa-color-brand-40);
-    --wa-color-brand-border-loud: var(--wa-color-brand-fill-loud);
-    --wa-form-control-border-color: var(--wa-color-border-normal);
     --wa-color-focus: var(--wa-color-purple-50);
-    // --wa-focus-ring-width: 1px;
 }
 
 html {
@@ -13,7 +9,7 @@ html {
 }
 
 #app {
-    height: 100dvh;
+    min-height: 80dvh;
     justify-items: center;
 }
 
@@ -22,14 +18,22 @@ html {
         background-color: var(--wa-color-surface-raised);
         border-radius: var(--wa-border-radius-l);
         box-shadow: var(--wa-shadow-s);
-        outline: .5pt solid var(--wa-color-purple-50);
-        margin-bottom: 10dvh;
         padding: var(--wa-space-3xl);
     }
 
     @media screen and (orientation: portrait) {
         padding: var(--wa-space-2xl);
     }
+}
+
+mark {
+    color: var(--wa-color-purple-20);
+    background-color: var(--wa-color-purple-90);
+}
+
+input {
+    min-width: 100%;
+    width: 180px;
 }
 
 button {

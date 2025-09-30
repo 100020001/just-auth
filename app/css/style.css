@@ -1,7 +1,4 @@
 :root {
-  --wa-color-brand-fill-loud: var(--wa-color-brand-40);
-  --wa-color-brand-border-loud: var(--wa-color-brand-fill-loud);
-  --wa-form-control-border-color: var(--wa-color-border-normal);
   --wa-color-focus: var(--wa-color-purple-50);
 }
 @media screen and (orientation: landscape) {
@@ -10,7 +7,7 @@
   }
 }
 #app {
-  height: 100dvh;
+  min-height: 80dvh;
   justify-items: center;
 }
 @media screen and (orientation: landscape) {
@@ -18,8 +15,6 @@
     background-color: var(--wa-color-surface-raised);
     border-radius: var(--wa-border-radius-l);
     box-shadow: var(--wa-shadow-s);
-    outline: 0.5pt solid var(--wa-color-purple-50);
-    margin-bottom: 10dvh;
     padding: var(--wa-space-3xl);
   }
 }
@@ -27,6 +22,14 @@
   .card {
     padding: var(--wa-space-2xl);
   }
+}
+mark {
+  color: var(--wa-color-purple-20);
+  background-color: var(--wa-color-purple-90);
+}
+input {
+  min-width: 100%;
+  width: 180px;
 }
 button[readonly] {
   pointer-events: none;

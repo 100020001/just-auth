@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Authenticate</title>
+    <title>Verify Your Email</title>
     <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon">
     <link rel=stylesheet href=https://early.webawesome.com/webawesome@3.0.0-beta.6/dist/styles/webawesome.css />
     <link rel=stylesheet href="/css/style.css" />
@@ -17,37 +17,42 @@
 
     <div id=app class="wa-grid wa-align-items-center">
 
-        <div class="card">
+        <div class=card>
+
+            <svg xmlns="http://www.w3.org/2000/svg" width=32 height=32 viewBox="0 0 24 24" fill=none stroke=currentColor stroke-width=2 stroke-linecap=round stroke-linejoin=round>
+                <path d="M16.555 3.843l3.602 3.602a2.877 2.877 0 0 1 0 4.069l-2.643 2.643a2.877 2.877 0 0 1 -4.069 0l-.301 -.301l-6.558 6.558a2 2 0 0 1 -1.239 .578l-.175 .008h-1.172a1 1 0 0 1 -.993 -.883l-.007 -.117v-1.172a2 2 0 0 1 .467 -1.284l.119 -.13l.414 -.414h2v-2h2v-2l2.144 -2.144l-.301 -.301a2.877 2.877 0 0 1 0 -4.069l2.643 -2.643a2.877 2.877 0 0 1 4.069 0z" />
+                <path d="M15 9h.01" />
+            </svg>
 
             <h3>
-                Authentication Required
+                Verify Your Email
             </h3>
 
             <p>
-                The site <b>{{ redirectDomain }}</b> requires verification.<br>
-                Enter your email to continue login.
+                To ensure secure access to <mark>{{ redirectDomain }}</mark>, please verify your email.<br>
+                Enter your address to receive a verification code.
             </p>
 
             <br>
 
-            <div class="wa-split wa-gap-m" style="align-items: end;">
+            <div class="wa-grid wa-gap-m" style="align-items: end;">
 
                 <div class="wa-stack wa-gap-xs" v-if="!mailsent">
                     <div class=wa-caption-m>My email</div>
                     <div style="position: relative; display: flex; align-items: center;">
-                        <input v-model=user placeholder="john.doe" style="min-width: 250px;" :style="{width: 180 + (user.length * 6.5) + 'px' }" @input=cleanUser @keyup.enter="user && $refs.myButton1.focus()" autofocus />
+                        <input v-model=user placeholder=john :style="{width: 180 + (user.length * 6.5) + 'px' }" @input=cleanUser @keyup.enter="user && $refs.myButton1.focus()" autofocus />
                         <span class=wa-caption-l style="position: absolute; right: var(--wa-form-control-padding-inline); pointer-events: none;">@kihlstroms.se</span>
                     </div>
                 </div>
                 <div class="wa-stack wa-gap-xs" v-else>
                     <div class=wa-caption-m>Verification Pin</div>
                     <div>
-                        <input v-model=pin placeholder="code" style="min-width: 250px;" @keyup.enter="pin && $refs.myButton2.focus()" ref="pinInput" autofocus />
+                        <input v-model=pin placeholder="code" @keyup.enter="pin && $refs.myButton2.focus()" ref="pinInput" autofocus />
                     </div>
                 </div>
 
                 <button class="wa-size-m wa-neutral" ref=myButton1 @click=sendCode :readonly="!user.length" v-if="!mailsent">
-                    Send login mail
+                    Get Code
                 </button>
                 <button class="wa-size-m wa-neutral" ref=myButton2 @click=verifyCode :readonly="!pin.length" v-else>
                     Verify pin
