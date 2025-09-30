@@ -20,7 +20,7 @@ app.post( '/login', async c => {
     const payload = {
         mail,
         redirect,
-        exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30, // 1 month in seconds
+        exp: Math.floor( Date.now() / 1000 ) + 60 * 60 * 24 * 30, // 1 month in seconds
     }
     const token = await sign( payload, process.env.JWT_SECRET )
 
@@ -31,19 +31,23 @@ app.post( '/login', async c => {
     try
     {
         const resend = new Resend( process.env.RESEND_API_KEY )
-        await resend.emails.send( {
-            from: 'no-reply@banarne.com',
+        const result = await resend.emails.send( {
+            from: 'no-reply@api.kihlstroms.se',
             to: mail,
-            subject: 'Your OTP Code',
-            html: `<p>Your OTP code is: <b>${pin}</b></p>`
+            subject: 'Your Pin Code',
+            html: `<p>Your Pin code is: <b>${pin}</b></p>`
         } )
+
+        if ( result.error )
+            return c.json( { error: result.error.message }, result.error.statusCode )
+        else
+            return c.json( { success: `Pin code sent to ${mail}` } )
     }
     catch ( err )
     {
         return c.json( { error: 'Failed to send email' }, 500 )
     }
 
-    return c.json( { success: `OTP code sent to ${mail}` } )
 } )
 
 app.post( '/verify-pin', async c => {

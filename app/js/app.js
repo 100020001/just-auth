@@ -64,6 +64,10 @@ new Vue( {
                     this.$toasted.show( data.success )
                     this.mailsent = true
                 }
+                else if ( data.error )
+                {
+                    this.$toasted.show( data.error )
+                }
             }
             catch ( err )
             {
@@ -89,8 +93,7 @@ new Vue( {
 
                 if ( !data.error )
                 {
-                    this.$toasted.show( 'Authenticated...' )
-                    this.$toasted.show( `Redirecting...` )
+                    this.$toasted.show( 'Authenticated. Redirecting...' )
                     setTimeout( () => {
                         window.location.href = `${data.success.redirect}?session=${data.success.token}`
                     }, 500 )
