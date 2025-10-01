@@ -65,7 +65,7 @@ new Vue( {
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify( { user, redirect: this.redirect } )
+                    body: JSON.stringify( { user, redirect: this.redirect, provider_id: this.provider_id, } )
                 } )
 
                 const data = await response.json()
@@ -98,7 +98,7 @@ new Vue( {
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify( { user, pin } )
+                    body: JSON.stringify( { user, pin, provider_id: this.provider_id, } )
                 } )
                 const data = await response.json()
 
@@ -126,11 +126,11 @@ new Vue( {
 
         const params = new URLSearchParams( window.location.search )
         this.redirect = params.get( 'redirect' )
-        this.userid = params.get( 'userid' )
+        this.provider_id = params.get( 'provider_id' )
 
 
         // Get settings for domain
-        const settings = await fetch( `/settings/${this.userid}` )
+        const settings = await fetch( `/settings/${this.provider_id}` )
         this.settings = await settings.json()
 
         if ( this.settings.error )

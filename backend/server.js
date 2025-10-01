@@ -11,16 +11,16 @@ const authMap = new Map()
 app.use( serveStatic( { root: path.resolve( process.cwd(), 'app' ) } ) )
 
 
-app.get( '/settings/:userid', async c => {
+app.get( '/settings/:provider_id', async c => {
 
-    let { userid } = c.req.param()
-    userid = userid.toUpperCase()
+    let { provider_id } = c.req.param()
+    provider_id = provider_id.toUpperCase()
 
     let settings = { error: 'Invalid domain' }
 
-    if ( process.env[ `CONFIG_${userid}` ] )
+    if ( process.env[ `CONFIG_${provider_id}` ] )
     {
-        const parsed = JSON.parse( process.env[ `CONFIG_${userid}` ] )
+        const parsed = JSON.parse( process.env[ `CONFIG_${provider_id}` ] )
 
         // Remove 'secret' key using object rest syntax
         const { secret, ...rest } = parsed
@@ -33,9 +33,17 @@ app.get( '/settings/:userid', async c => {
 
 app.post( '/login', async c => {
 
-    const { user, redirect } = await c.req.json()
+    let { provider_id, user, redirect } = await c.req.json()
+    provider_id = provider_id.toUpperCase()
+
+    let settings
+    if ( !process.env[ `CONFIG_${provider_id}` ] )
+        return c.json( { error: 'Invalid domain' }, 400 )
+    else
+        settings = JSON.parse( process.env[ `CONFIG_${provider_id}` ] )
+
     const sanitizedUser = user.replace( /[^a-zA-Z0-9._-]/g, '' )
-    const mail = sanitizedUser + '@kihlstroms.se'
+    const mail = sanitizedUser + '@' + settings.mailDomain
 
     // Generate pin
     const pin = Math.floor( 1000 + Math.random() * 9000 ).toString()
@@ -44,7 +52,7 @@ app.post( '/login', async c => {
         redirect,
         exp: Math.floor( Date.now() / 1000 ) + 60 * 60 * 24 * 30, // 1 month in seconds
     }
-    const token = await sign( payload, process.env.JWT_SECRET )
+    const token = await sign( payload, settings.secret )
 
     // Store token and PIN by mail
     authMap.set( mail, { token, pin, redirect } )
@@ -74,9 +82,16 @@ app.post( '/login', async c => {
 
 app.post( '/verify-pin', async c => {
 
-    const { user, pin } = await c.req.json()
-    const mail = user + '@kihlstroms.se'
+    let { provider_id, user, pin } = await c.req.json()
+    provider_id = provider_id.toUpperCase()
 
+    let settings
+    if ( !process.env[ `CONFIG_${provider_id}` ] )
+        return c.json( { error: 'Invalid domain' }, 400 )
+    else
+        settings = JSON.parse( process.env[ `CONFIG_${provider_id}` ] )
+
+    const mail = user + '@' + settings.mailDomain
     const entry = authMap.get( mail )
 
     if ( !entry )
@@ -88,7 +103,7 @@ app.post( '/verify-pin', async c => {
     // Verify token
     try
     {
-        await verify( entry.token, process.env.JWT_SECRET )
+        await verify( entry.token, settings.secret )
     }
     catch ( e )
     {
