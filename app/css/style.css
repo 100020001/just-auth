@@ -1,3 +1,15 @@
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+html {
+  animation: fade 0.5s ease-in-out forwards;
+  animation-fill-mode: forwards;
+}
 @media screen and (orientation: landscape) {
   html {
     background-color: var(--wa-color-surface-lowered);

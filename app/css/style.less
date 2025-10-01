@@ -1,4 +1,20 @@
+// =====================
+// Animations
+// =====================
+@keyframes fade {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
 html {
+    animation: fade .5s ease-in-out forwards;
+    animation-fill-mode: forwards;
+
     @media screen and (orientation: landscape) {
         background-color: var(--wa-color-surface-lowered);
     }
