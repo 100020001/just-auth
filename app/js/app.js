@@ -128,9 +128,8 @@ new Vue( {
         this.redirect = params.get( 'redirect' )
         this.provider_id = params.get( 'provider_id' )
 
-
         // Get settings for domain
-        const settings = await fetch( `/settings/${this.provider_id}` )
+        const settings = await fetch( '/settings' + ( this.provider_id ? `/${this.provider_id}` : '' ) )
         this.settings = await settings.json()
 
         if ( this.settings.error )

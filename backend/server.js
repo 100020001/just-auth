@@ -11,36 +11,76 @@ const authMap = new Map()
 app.use( serveStatic( { root: path.resolve( process.cwd(), 'app' ) } ) )
 
 
-app.get( '/settings/:provider_id', async c => {
+// Helper function to get provider settings or return error response
+async function getProviderSettings( c, next ) {
 
-    let { provider_id } = c.req.param()
-    provider_id = provider_id.toUpperCase()
+    let provider_id
+    const paramId = c.req.param( 'provider_id' )
 
-    let settings = { error: 'Invalid domain' }
-
-    if ( process.env[ `CONFIG_${provider_id}` ] )
+    if ( paramId )
     {
-        const parsed = JSON.parse( process.env[ `CONFIG_${provider_id}` ] )
-
-        // Remove 'secret' key using object rest syntax
-        const { secret, ...rest } = parsed
-        settings = { ...rest }
+        provider_id = paramId.toUpperCase()
+    }
+    else
+    {
+        // For POST routes without URL param, parse body
+        try
+        {
+            const body = await c.req.json()
+            provider_id = body.provider_id.toUpperCase()
+        }
+        catch ( err )
+        {
+            return c.json( { error: 'Missing provider_id' }, 404 )
+        }
     }
 
-    return c.json( settings )
+    const config = process.env[ `CONFIG_${provider_id}` ]
+    if ( !config )
+        return c.json( { error: 'Invalid provider_id' }, 400 )
+
+    let settings
+    try
+    {
+        settings = JSON.parse( config )
+        if ( !settings || typeof settings !== 'object' || Array.isArray( settings ) )
+        {
+            throw new Error( 'Parsed config is not a valid object' )
+        }
+    }
+    catch ( parseErr )
+    {
+        console.error( `JSON parse error for ${provider_id}:`, parseErr )
+        return c.json( { error: 'Invalid configuration' }, 500 )
+    }
+
+    if ( settings )
+    {
+        c.set( 'providerSettings', settings )
+        return next()
+    }
+    else
+    {
+        return c.json( { error: 'Provider settings not found x' }, 404 )
+    }
+}
+
+
+app.get( '/settings/:provider_id?', getProviderSettings, async c => {
+
+    const settings = c.get( 'providerSettings' )
+
+    // Remove 'secret' key
+    const { secret, ...safe_settings } = settings
+
+    return c.json( safe_settings )
 } )
 
 
-app.post( '/login', async c => {
+app.post( '/login', getProviderSettings, async c => {
 
-    let { provider_id, user, redirect } = await c.req.json()
-    provider_id = provider_id.toUpperCase()
-
-    let settings
-    if ( !process.env[ `CONFIG_${provider_id}` ] )
-        return c.json( { error: 'Invalid domain' }, 400 )
-    else
-        settings = JSON.parse( process.env[ `CONFIG_${provider_id}` ] )
+    const settings = c.get( 'providerSettings' )
+    const { user, redirect } = await c.req.json()
 
     const sanitizedUser = user.replace( /[^a-zA-Z0-9._-]/g, '' )
     const mail = sanitizedUser + '@' + settings.mailDomain
@@ -80,16 +120,10 @@ app.post( '/login', async c => {
 
 } )
 
-app.post( '/verify-pin', async c => {
+app.post( '/verify-pin', getProviderSettings, async c => {
 
-    let { provider_id, user, pin } = await c.req.json()
-    provider_id = provider_id.toUpperCase()
-
-    let settings
-    if ( !process.env[ `CONFIG_${provider_id}` ] )
-        return c.json( { error: 'Invalid domain' }, 400 )
-    else
-        settings = JSON.parse( process.env[ `CONFIG_${provider_id}` ] )
+    const settings = c.get( 'providerSettings' )
+    const { user, pin } = await c.req.json()
 
     const mail = user + '@' + settings.mailDomain
     const entry = authMap.get( mail )
