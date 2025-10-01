@@ -12,8 +12,16 @@ html {
 
 #app {
     overflow: hidden;
-    min-height: 80dvh;
     justify-items: center;
+
+    @media screen and (orientation: landscape) {
+
+        min-height: 80dvh;
+    }
+
+    @media screen and (orientation: portrait) {
+        min-height: 70dvh;
+    }
 }
 
 .card {
