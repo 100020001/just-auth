@@ -103,7 +103,7 @@ app.post( '/login', getProviderSettings, async c => {
     {
         const resend = new Resend( process.env.RESEND_API_KEY )
         const result = await resend.emails.send( {
-            from: 'no-reply@api.kihlstroms.se',
+            from: settings.sendAddress,
             to: mail,
             subject: 'Your Pin Code',
             html: `<p>Your Pin code is: <b>${pin}</b></p>`
