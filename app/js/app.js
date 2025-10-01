@@ -137,6 +137,17 @@ new Vue( {
         const params = new URLSearchParams( window.location.search )
         this.redirect = params.get( 'redirect' )
         this.provider_id = params.get( 'provider_id' )
+        this.brand_color = params.get( 'brand_color' ) || 'neutral'
+
+        // Apply brand color
+        const styleElement = document.createElement( 'style' )
+        styleElement.textContent = `:root {
+            --wa-color-brand-20: var(--wa-color-${this.brand_color}-20);
+            --wa-color-brand-90: var(--wa-color-${this.brand_color}-90);
+            --wa-color-text-link: var(--wa-color-${this.brand_color}-50);
+            --wa-color-focus: var(--wa-color-${this.brand_color}-50);
+        }`
+        document.head.appendChild( styleElement )
 
         // Get settings for domain
         const settings = await fetch( '/settings' + ( this.provider_id ? `/${this.provider_id}` : '' ) )

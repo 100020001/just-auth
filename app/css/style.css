@@ -1,7 +1,3 @@
-:root {
-  --wa-color-text-link: var(--wa-color-purple-50);
-  --wa-color-focus: var(--wa-color-purple-50);
-}
 html {
   overflow: hidden;
 }
@@ -39,8 +35,8 @@ html {
   }
 }
 mark {
-  color: var(--wa-color-purple-20);
-  background-color: var(--wa-color-purple-90);
+  color: var(--wa-color-brand-20);
+  background-color: var(--wa-color-brand-90);
   white-space: nowrap;
 }
 input {
