@@ -82,7 +82,7 @@ app.post( '/login', getProviderSettings, async c => {
     const settings = c.get( 'providerSettings' )
     const { user, redirect } = await c.req.json()
 
-    const sanitizedUser = user.replace( /[^a-zA-Z0-9._-]/g, '' )
+    const sanitizedUser = user.split( '@' )[ 0 ].replace( /[^a-zA-Z0-9._-]/g, '' )
     const mail = sanitizedUser + '@' + settings.mailDomain
 
     // Generate pin

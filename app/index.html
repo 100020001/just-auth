@@ -52,7 +52,7 @@
                 <div class="wa-stack wa-gap-xs" v-else>
                     <div class=wa-caption-m>Verification Pin</div>
                     <div>
-                        <input v-model=pin placeholder="code" @keyup.enter="pin && $refs.myButton2.focus()" ref="pinInput" autofocus />
+                        <input v-model=pin placeholder="" style="font-family: var(--wa-font-family-code); text-align: center; letter-spacing: 1.5ch;" @keyup.enter="pin && $refs.myButton2.focus()" ref="pinInput" autofocus />
                     </div>
                 </div>
 
@@ -60,7 +60,7 @@
                     Get Code
                 </button>
                 <button class="wa-size-m wa-neutral" ref=myButton2 @click=verifyCode :readonly="!pin.length" v-else>
-                    Verify pin
+                    Verify Pin
                 </button>
             </div>
 

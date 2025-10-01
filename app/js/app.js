@@ -133,12 +133,7 @@ new Vue( {
         this.settings = await settings.json()
 
         if ( this.settings.error )
-        {
-            this.$toasted.show( this.settings.error )
-            document.querySelector( '#app' ).innerHTML = 'error'
-        }
-
-        console.dir( this.settings )
+            document.body.innerHTML = this.settings.error
     },
 
 } )
