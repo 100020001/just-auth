@@ -11,17 +11,21 @@ const authMap = new Map()
 app.use( serveStatic( { root: path.resolve( process.cwd(), 'app' ) } ) )
 
 
-app.get( '/settings/:domainuser', async c => {
+app.get( '/settings/:userid', async c => {
 
-    const { domainuser } = c.req.param()
+    let { userid } = c.req.param()
+    userid = userid.toUpperCase()
 
     let settings = { error: 'Invalid domain' }
 
-    if ( domainuser == 'kihlstroms' )
-        settings = {
-            friendlyName: 'Kihlströms',
-            mailDomain: 'kihlstroms.se',
-        }
+    if ( process.env[ `CONFIG_${userid}` ] )
+    {
+        const parsed = JSON.parse( process.env[ `CONFIG_${userid}` ] )
+
+        // Remove 'secret' key using object rest syntax
+        const { secret, ...rest } = parsed
+        settings = { ...rest }
+    }
 
     return c.json( settings )
 } )

@@ -8,7 +8,6 @@ new Vue( {
 
     data: {
         user: '',
-        domain: '@kihlstroms.se',
         settings: {},
         pin: '',
         mailsent: false,
@@ -127,11 +126,11 @@ new Vue( {
 
         const params = new URLSearchParams( window.location.search )
         this.redirect = params.get( 'redirect' )
-        this.domain = params.get( 'user' )
+        this.userid = params.get( 'userid' )
 
 
         // Get settings for domain
-        const settings = await fetch( `/settings/${this.domain}` )
+        const settings = await fetch( `/settings/${this.userid}` )
         this.settings = await settings.json()
 
         if ( this.settings.error )
