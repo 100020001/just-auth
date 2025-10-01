@@ -9,16 +9,12 @@ new Vue( {
     data: {
         user: '',
         domain: '@kihlstroms.se',
+        settings: {},
         pin: '',
         mailsent: false,
     },
 
     computed: {
-
-        redirect() {
-            const params = new URLSearchParams( window.location.search )
-            return params.get( 'redirect' )
-        },
 
         redirectDomain() {
 
@@ -34,6 +30,22 @@ new Vue( {
                 return ''
             }
         }
+    },
+
+    watch: {
+
+        mailsent( newVal ) {
+            if ( newVal )
+            {
+                this.$nextTick( () => {
+                    if ( this.$refs.pinInput )
+                    {
+                        this.$refs.pinInput.focus()
+                    }
+                } )
+            }
+        },
+
     },
 
     methods: {
@@ -111,20 +123,24 @@ new Vue( {
 
     },
 
-    watch: {
+    async mounted() {
 
-        mailsent( newVal ) {
-            if ( newVal )
-            {
-                this.$nextTick( () => {
-                    if ( this.$refs.pinInput )
-                    {
-                        this.$refs.pinInput.focus()
-                    }
-                } )
-            }
-        },
+        const params = new URLSearchParams( window.location.search )
+        this.redirect = params.get( 'redirect' )
+        this.domain = params.get( 'user' )
 
+
+        // Get settings for domain
+        const settings = await fetch( `/settings/${this.domain}` )
+        this.settings = await settings.json()
+
+        if ( this.settings.error )
+        {
+            this.$toasted.show( this.settings.error )
+            document.querySelector( '#app' ).innerHTML = 'error'
+        }
+
+        console.dir( this.settings )
     },
 
 } )

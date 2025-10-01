@@ -10,10 +10,28 @@ const authMap = new Map()
 
 app.use( serveStatic( { root: path.resolve( process.cwd(), 'app' ) } ) )
 
+
+app.get( '/settings/:domainuser', async c => {
+
+    const { domainuser } = c.req.param()
+
+    let settings = { error: 'Invalid domain' }
+
+    if ( domainuser == 'kihlstroms' )
+        settings = {
+            friendlyName: 'Kihlströms',
+            mailDomain: 'kihlstroms.se',
+        }
+
+    return c.json( settings )
+} )
+
+
 app.post( '/login', async c => {
 
     const { user, redirect } = await c.req.json()
-    const mail = user + '@kihlstroms.se'
+    const sanitizedUser = user.replace( /[^a-zA-Z0-9._-]/g, '' )
+    const mail = sanitizedUser + '@kihlstroms.se'
 
     // Generate pin
     const pin = Math.floor( 1000 + Math.random() * 9000 ).toString()
@@ -76,5 +94,6 @@ app.post( '/verify-pin', async c => {
     // On success
     return c.json( { success: entry } )
 } )
+
 
 export default app

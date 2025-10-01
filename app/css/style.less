@@ -1,4 +1,5 @@
 :root {
+    --wa-color-text-link: var(--wa-color-purple-50);
     --wa-color-focus: var(--wa-color-purple-50);
 }
 
@@ -13,18 +14,22 @@ html {
 #app {
     overflow: hidden;
     justify-items: center;
+    margin: 0 var(--wa-space-2xl);
+    justify-content: space-between;
+    align-items: center;
 
     @media screen and (orientation: landscape) {
-
-        min-height: 80dvh;
+        min-height: 90dvh;
     }
 
     @media screen and (orientation: portrait) {
-        min-height: 70dvh;
+        min-height: 90dvh;
     }
 }
 
 .card {
+    margin: auto;
+
     @media screen and (orientation: landscape) {
         background-color: var(--wa-color-surface-raised);
         border-radius: var(--wa-border-radius-l);
@@ -32,9 +37,7 @@ html {
         padding: var(--wa-space-3xl);
     }
 
-    @media screen and (orientation: portrait) {
-        padding: var(--wa-space-2xl);
-    }
+    @media screen and (orientation: portrait) {}
 }
 
 mark {
