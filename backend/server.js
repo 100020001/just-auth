@@ -69,9 +69,7 @@ async function getProviderSettings( c, next ) {
 app.get( '/settings/:provider_id?', getProviderSettings, async c => {
 
     const settings = c.get( 'providerSettings' )
-
-    // Remove 'secret' key
-    const { secret, ...safe_settings } = settings
+    const { secret, ...safe_settings } = settings // Remove 'secret' key
 
     return c.json( safe_settings )
 } )
@@ -80,10 +78,13 @@ app.get( '/settings/:provider_id?', getProviderSettings, async c => {
 app.post( '/login', getProviderSettings, async c => {
 
     const settings = c.get( 'providerSettings' )
-    const { user, redirect } = await c.req.json()
+    const { user, redirect, provider_domain } = await c.req.json()
+
+    if ( !settings.mailDomains.includes( provider_domain ) )
+        return c.json( { error: 'Invalid domain' }, 400 )
 
     const sanitizedUser = user.split( '@' )[ 0 ].replace( /[^a-zA-Z0-9._-]/g, '' )
-    const mail = sanitizedUser + '@' + settings.mailDomain
+    const mail = sanitizedUser + '@' + provider_domain
 
     // Generate pin
     const pin = Math.floor( 1000 + Math.random() * 9000 ).toString()
@@ -123,9 +124,12 @@ app.post( '/login', getProviderSettings, async c => {
 app.post( '/verify-pin', getProviderSettings, async c => {
 
     const settings = c.get( 'providerSettings' )
-    const { user, pin } = await c.req.json()
+    const { user, pin, provider_domain } = await c.req.json()
 
-    const mail = user + '@' + settings.mailDomain
+    if ( !settings.mailDomains.includes( provider_domain ) )
+        return c.json( { error: 'Invalid domain' }, 400 )
+
+    const mail = user + '@' + provider_domain
     const entry = authMap.get( mail )
 
     if ( !entry )

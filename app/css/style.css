@@ -46,6 +46,13 @@ input {
   min-width: 100%;
   width: 180px;
 }
+select {
+  border: none;
+  height: calc(var(--wa-form-control-height) - 2px);
+  background: initial;
+  padding: 0;
+  appearance: auto;
+}
 button[readonly] {
   pointer-events: none;
 }

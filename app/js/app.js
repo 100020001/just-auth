@@ -1,5 +1,6 @@
 Vue.use( Toasted, {
-    position: 'bottom-center'
+    position: 'bottom-center',
+    duration: 5000,
 } )
 
 new Vue( {
@@ -8,6 +9,7 @@ new Vue( {
 
     data: {
         user: '',
+        selectedDomain: '',
         settings: {},
         pin: '',
         mailsent: false,
@@ -65,7 +67,12 @@ new Vue( {
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify( { user, redirect: this.redirect, provider_id: this.provider_id, } )
+                    body: JSON.stringify( {
+                        user,
+                        provider_domain: this.selectedDomain,
+                        provider_id: this.provider_id,
+                        redirect: this.redirect,
+                    } )
                 } )
 
                 const data = await response.json()
@@ -82,7 +89,7 @@ new Vue( {
             }
             catch ( err )
             {
-                this.$toasted.show( err.message )
+                this.$toasted.show( err.error )
             }
         },
 
@@ -98,16 +105,19 @@ new Vue( {
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify( { user, pin, provider_id: this.provider_id, } )
+                    body: JSON.stringify( {
+                        user,
+                        pin,
+                        provider_id: this.provider_id,
+                        provider_domain: this.selectedDomain,
+                    } )
                 } )
                 const data = await response.json()
 
                 if ( !data.error )
                 {
                     this.$toasted.show( 'Authenticated. Redirecting...' )
-                    setTimeout( () => {
-                        window.location.href = `${data.success.redirect}?session=${data.success.token}`
-                    }, 500 )
+                    window.location.href = `${data.success.redirect}?session=${data.success.token}`
                 }
                 else
                 {
@@ -134,6 +144,9 @@ new Vue( {
 
         if ( this.settings.error )
             document.body.innerHTML = this.settings.error
+
+        // Select first domain as default
+        this.selectedDomain = this.settings.mailDomains[ 0 ] || ''
     },
 
 } )

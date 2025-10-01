@@ -46,7 +46,11 @@
                     <div class=wa-caption-m>My email</div>
                     <div style="position: relative; display: flex; align-items: center;">
                         <input v-model=user placeholder=john :style="{width: 180 + (user.length * 6.5) + 'px' }" @input=cleanUser @keyup.enter="user && $refs.myButton1.focus()" autofocus />
-                        <span class=wa-caption-l style="position: absolute; right: var(--wa-form-control-padding-inline); pointer-events: none;">@{{settings.mailDomain}}</span>
+                        <span style="position: absolute; right: var(--wa-form-control-padding-inline);">
+                            <select v-model=selectedDomain>
+                                <option v-for="domain in settings.mailDomains" :value=domain>@{{domain}}</option>
+                            </select>
+                        </span>
                     </div>
                 </div>
                 <div class="wa-stack wa-gap-xs" v-else>
