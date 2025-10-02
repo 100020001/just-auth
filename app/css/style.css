@@ -12,7 +12,7 @@ html {
 }
 @media screen and (orientation: landscape) {
   html {
-    background-color: var(--wa-color-surface-lowered);
+    background: color-mix(in srgb, var(--wa-color-surface-lowered), var(--wa-color-surface-default));
   }
 }
 #app {

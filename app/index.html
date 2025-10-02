@@ -25,15 +25,15 @@
             </svg>
 
             <h3>
-                Verify Your Email
+                Sign in
             </h3>
 
             <div class="wa-stack wa-gap-s">
                 <div>
-                    To ensure secure access to <mark>{{ settings.friendlyName }}</mark>, please verify your email.
+                    We need to verify your <mark>{{ settings.friendlyName }}</mark> account.
                 </div>
                 <div>
-                    Enter your address to receive a verification code.
+                    Enter your name and select domain. A code will be sent to your email.
                 </div>
             </div>
 
@@ -54,17 +54,17 @@
                     </div>
                 </div>
                 <div class="wa-stack wa-gap-xs" v-else>
-                    <div class=wa-caption-m>Verification Pin</div>
+                    <div class=wa-caption-m>Verification Code</div>
                     <div>
                         <input v-model=pin placeholder="" style="font-family: var(--wa-font-family-code); text-align: center; letter-spacing: 1.5ch;" @keyup.enter="pin && $refs.myButton2.focus()" ref="pinInput" autofocus />
                     </div>
                 </div>
 
                 <button class="wa-size-m wa-neutral" ref=myButton1 @click=sendCode :readonly="!user.length" v-if="!mailsent">
-                    Get Code
+                    Continue
                 </button>
                 <button class="wa-size-m wa-neutral" ref=myButton2 @click=verifyCode :readonly="!pin.length" v-else>
-                    Verify Pin
+                    Verify
                 </button>
             </div>
 

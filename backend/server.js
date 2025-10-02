@@ -105,14 +105,14 @@ app.post( '/login', getProviderSettings, async c => {
         const result = await resend.emails.send( {
             from: settings.sendAddress,
             to: mail,
-            subject: 'Your Pin Code',
-            html: `<p>Your Pin code is: <b>${pin}</b></p>`
+            subject: 'Your Verification Code',
+            html: `Your verification code is<br><h1>${pin}</h1>`
         } )
 
         if ( result.error )
             return c.json( { error: result.error.message }, result.error.statusCode )
         else
-            return c.json( { success: `Pin code sent to ${mail}` } )
+            return c.json( { success: `Code sent to ${mail}` } )
     }
     catch ( err )
     {
