@@ -117,7 +117,9 @@ new Vue( {
                 if ( !data.error )
                 {
                     this.$toasted.show( 'Authenticated. Redirecting...' )
-                    window.location.href = `${data.success.redirect}?session=${data.success.token}`
+                    const redirectUrl = new URL( data.success.redirect )
+                    redirectUrl.searchParams.set( 'session', data.success.token )
+                    window.location.href = redirectUrl.toString()
                 }
                 else
                 {
