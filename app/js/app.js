@@ -13,6 +13,9 @@ new Vue( {
         settings: {},
         pin: '',
         mailsent: false,
+        provider_id: '',
+        redirect: '',
+        brand_color: 'neutral',
     },
 
     computed: {
@@ -89,7 +92,7 @@ new Vue( {
             }
             catch ( err )
             {
-                this.$toasted.show( err.error )
+                this.$toasted.show( err.message )
             }
         },
 
@@ -137,9 +140,9 @@ new Vue( {
     async mounted() {
 
         const params = new URLSearchParams( window.location.search )
-        this.redirect = params.get( 'redirect' )
-        this.provider_id = params.get( 'provider_id' )
-        this.brand_color = params.get( 'brand_color' ) || 'neutral'
+        this.redirect = params.get( 'redirect' ) || ''
+        this.provider_id = params.get( 'provider_id' ) || ''
+        this.brand_color = ( params.get( 'brand_color' ) || 'neutral' ).replace( /[^a-z0-9-]/gi, '' )
 
         // Apply brand color
         const styleElement = document.createElement( 'style' )
@@ -156,10 +159,10 @@ new Vue( {
         this.settings = await settings.json()
 
         if ( this.settings.error )
-            document.body.innerHTML = this.settings.error
+            return document.body.innerHTML = this.settings.error
 
         // Select first domain as default
-        this.selectedDomain = this.settings.mailDomains[ 0 ] || ''
+        this.selectedDomain = this.settings.mailDomains?.[ 0 ] || ''
     },
 
 } )

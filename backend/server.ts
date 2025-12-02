@@ -2,7 +2,9 @@ import { Hono, Context, Next } from 'hono'
 import { serveStatic } from 'hono/bun'
 import { sign, verify } from 'hono/jwt'
 import { Resend } from 'resend'
-import { randomInt } from 'crypto'
+import { randomInt, timingSafeEqual } from 'crypto'
+
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 // ============================================================================
 // Types
@@ -156,6 +158,27 @@ function generateSecurePin(): string {
 }
 
 /**
+ * Constant-time string comparison to prevent timing attacks.
+ */
+function secureCompare(a: string, b: string): boolean {
+    if (a.length !== b.length) return false
+    return timingSafeEqual(Buffer.from(a), Buffer.from(b))
+}
+
+/**
+ * Validates redirect URL is HTTPS (or localhost for development).
+ */
+function isValidRedirectUrl(url: string): boolean {
+    try {
+        const parsed = new URL(url)
+        const isLocalhost = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1'
+        return parsed.protocol === 'https:' || isLocalhost
+    } catch {
+        return false
+    }
+}
+
+/**
  * Safely parses JSON request body.
  * Returns null if parsing fails.
  */
@@ -225,8 +248,6 @@ async function sendVerificationEmail(
     pin: string,
     fromAddress: string
 ): Promise<{ success: boolean; error?: string }> {
-    const resend = new Resend(process.env.RESEND_API_KEY)
-
     const result = await resend.emails.send({
         from: fromAddress,
         to: toEmail,
@@ -255,7 +276,7 @@ app.use('/*', serveStatic({ root: './app' }))
  * Returns public provider settings (excludes secret).
  */
 app.get('/settings/:provider_id?', loadProviderConfig, async (c: AppContext) => {
-    const { secret, ...publicConfig } = c.get('providerConfig')
+    const { secret: _, ...publicConfig } = c.get('providerConfig')
     return c.json(publicConfig)
 })
 
@@ -274,6 +295,16 @@ app.post('/login', loadProviderConfig, async (c: AppContext) => {
         user: string
         redirect: string
         provider_domain: string
+    }
+
+    // Validate required fields
+    if (!user || !domain || !redirectUrl) {
+        return c.json({ error: 'Missing required fields' }, 400)
+    }
+
+    // Validate redirect URL
+    if (!isValidRedirectUrl(redirectUrl)) {
+        return c.json({ error: 'Invalid redirect URL' }, 400)
     }
 
     // Validate domain is allowed for this provider
@@ -331,6 +362,11 @@ app.post('/verify-pin', loadProviderConfig, async (c: AppContext) => {
         provider_domain: string
     }
 
+    // Validate required fields
+    if (!user || !domain || !pin) {
+        return c.json({ error: 'Missing required fields' }, 400)
+    }
+
     // Validate domain
     if (!config.mailDomains.includes(domain)) {
         return c.json({ error: 'Invalid email domain' }, 400)
@@ -358,8 +394,8 @@ app.post('/verify-pin', loadProviderConfig, async (c: AppContext) => {
         return c.json({ error: 'Code expired. Please request a new one.' }, 400)
     }
 
-    // Validate PIN
-    if (session.pin !== pin) {
+    // Validate PIN (constant-time comparison)
+    if (!secureCompare(session.pin, pin)) {
         return c.json({ error: 'Invalid code' }, 400)
     }
 
