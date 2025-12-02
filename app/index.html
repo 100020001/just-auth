@@ -33,25 +33,19 @@
                     We need to verify your <mark>{{ settings.friendlyName }}</mark> account.
                 </div>
                 <div>
-                    Enter your name and select domain. A code will be sent to your email.
+                    Enter your email and we'll send you a verification code.
                 </div>
             </div>
 
             <br>
             <br>
 
-            <div class="wa-stack wa-gap-m">
+            <div class="wa-stack wa-gap-l">
 
                 <div class="wa-stack wa-gap-xs" v-if="!mailsent">
                     <div class=wa-caption-m>My email</div>
-                    <div style="position: relative; display: flex; align-items: center;">
-                        <input v-model=user placeholder=john.doe :style="{width: 180 + (user.length * 6.5) + 'px' }" @input=cleanUser @keyup.enter="user && $refs.myButton1.focus()" autofocus />
-                        <span style="position: absolute; right: var(--wa-form-control-padding-inline);">
-                            <select v-model=selectedDomain>
-                                <option v-for="domain in settings.mailDomains" :value=domain>@{{domain}}</option>
-                            </select>
-                        </span>
-                    </div>
+                    <input v-model=email placeholder="john.doe@company.com" @keyup.enter="isValidEmail && $refs.myButton1.focus()" autofocus />
+                    <div class=wa-caption-xs>Use your {{ settings.mailDomains?.map(d => '@' + d).join(' or ') }} email</div>
                 </div>
                 <div class="wa-stack wa-gap-xs" v-else>
                     <div class=wa-caption-m>Verification Code</div>
@@ -60,7 +54,7 @@
                     </div>
                 </div>
 
-                <button class="wa-size-m wa-neutral" ref=myButton1 @click=sendCode :readonly="!user.length" v-if="!mailsent">
+                <button class="wa-size-m wa-neutral" ref=myButton1 @click=sendCode :disabled="!isValidEmail" v-if="!mailsent">
                     Continue
                 </button>
                 <button class="wa-size-m wa-neutral" ref=myButton2 @click=verifyCode :readonly="!pin.length" v-else>

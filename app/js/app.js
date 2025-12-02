@@ -8,8 +8,7 @@ new Vue( {
     el: '#app',
 
     data: {
-        user: '',
-        selectedDomain: '',
+        email: '',
         settings: {},
         pin: '',
         mailsent: false,
@@ -33,7 +32,26 @@ new Vue( {
             {
                 return ''
             }
-        }
+        },
+
+        validDomains() {
+            return this.settings.mailDomains || []
+        },
+
+        emailDomain() {
+            const parts = this.email.split( '@' )
+            return parts.length === 2 ? parts[ 1 ] : ''
+        },
+
+        isValidEmail() {
+            if ( !this.email || !this.validDomains.length ) return false
+            const parts = this.email.split( '@' )
+            return parts.length === 2 && parts[ 0 ].length > 0 && this.validDomains.includes( parts[ 1 ] )
+        },
+
+        user() {
+            return this.email.split( '@' )[ 0 ] || ''
+        },
     },
 
     watch: {
@@ -54,14 +72,7 @@ new Vue( {
 
     methods: {
 
-        cleanUser() {
-
-            this.user = this.user.split( '@' )[ 0 ]
-        },
-
         async sendCode() {
-
-            const user = this.user
 
             try
             {
@@ -71,8 +82,8 @@ new Vue( {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify( {
-                        user,
-                        provider_domain: this.selectedDomain,
+                        user: this.user,
+                        provider_domain: this.emailDomain,
                         provider_id: this.provider_id,
                         redirect: this.redirect,
                     } )
@@ -98,9 +109,6 @@ new Vue( {
 
         async verifyCode() {
 
-            const user = this.user
-            const pin = this.pin
-
             try
             {
                 const response = await fetch( '/verify-pin', {
@@ -109,10 +117,10 @@ new Vue( {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify( {
-                        user,
-                        pin,
+                        user: this.user,
+                        pin: this.pin,
                         provider_id: this.provider_id,
-                        provider_domain: this.selectedDomain,
+                        provider_domain: this.emailDomain,
                     } )
                 } )
                 const data = await response.json()
@@ -161,8 +169,6 @@ new Vue( {
         if ( this.settings.error )
             return document.body.innerHTML = this.settings.error
 
-        // Select first domain as default
-        this.selectedDomain = this.settings.mailDomains?.[ 0 ] || ''
     },
 
 } )
