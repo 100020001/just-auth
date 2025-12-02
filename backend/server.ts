@@ -3,7 +3,6 @@ import { serveStatic } from 'hono/bun'
 import { sign, verify } from 'hono/jwt'
 import { Resend } from 'resend'
 import { randomInt } from 'crypto'
-import path from 'path'
 
 // ============================================================================
 // Types
@@ -249,7 +248,7 @@ async function sendVerificationEmail(
 const app = new Hono<{ Variables: AppVariables }>()
 
 // Serve static files from /app directory
-app.use(serveStatic({ root: path.resolve(process.cwd(), 'app') }))
+app.use('/*', serveStatic({ root: './app' }))
 
 /**
  * GET /settings/:provider_id
