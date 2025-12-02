@@ -11,9 +11,32 @@
     }
 }
 
+@keyframes toastIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, 20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
+
+@keyframes toastOut {
+    from {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+
+    to {
+        opacity: 0;
+        transform: translate(-50%, 20px);
+    }
+}
+
 html {
     animation: fade .5s ease-in-out forwards;
-    animation-fill-mode: forwards;
 
     @media screen and (orientation: landscape) {
         background: color-mix(in srgb, var(--wa-color-surface-lowered), var(--wa-color-surface-default));
@@ -60,5 +83,22 @@ input {
 button {
     &[readonly] {
         pointer-events: none;
+    }
+}
+
+.toast {
+    position: fixed;
+    bottom: var(--wa-space-2xl);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--wa-color-surface-raised);
+    padding: var(--wa-space-s) var(--wa-space-m);
+    border-radius: var(--wa-border-radius-m);
+
+    animation: toastIn .2s ease-out forwards;
+    z-index: 1000;
+
+    &.fade-out {
+        animation: toastOut .2s ease-in forwards;
     }
 }

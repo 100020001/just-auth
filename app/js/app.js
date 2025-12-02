@@ -1,91 +1,66 @@
-Vue.use( Toasted, {
-    position: 'bottom-center',
-    duration: 5000,
-} )
+const { createApp, ref, computed, watch, nextTick, onMounted } = Vue
 
-new Vue( {
+const app = createApp( {
 
-    el: '#app',
+    setup() {
 
-    data: {
-        email: '',
-        settings: {},
-        pin: '',
-        mailsent: false,
-        provider_id: '',
-        redirect: '',
-        brand_color: 'neutral',
-    },
+        const email = ref( '' )
+        const settings = ref( {} )
+        const pin = ref( '' )
+        const mailsent = ref( false )
+        const provider_id = ref( '' )
+        const redirect = ref( '' )
+        const brand_color = ref( 'neutral' )
 
-    computed: {
+        const pinInput = ref( null )
+        const myButton1 = ref( null )
+        const myButton2 = ref( null )
 
-        redirectDomain() {
+        // Computed
+        const validDomains = computed( () => settings.value.mailDomains || [] )
 
-            if ( !this.redirect ) return ''
-
-            try
-            {
-                const url = new URL( this.redirect )
-                return url.hostname
-            }
-            catch ( e )
-            {
-                return ''
-            }
-        },
-
-        validDomains() {
-            return this.settings.mailDomains || []
-        },
-
-        emailDomain() {
-            const parts = this.email.split( '@' )
+        const emailDomain = computed( () => {
+            const parts = email.value.split( '@' )
             return parts.length === 2 ? parts[ 1 ] : ''
-        },
+        } )
 
-        isValidEmail() {
-            if ( !this.email || !this.validDomains.length ) return false
-            const parts = this.email.split( '@' )
-            return parts.length === 2 && parts[ 0 ].length > 0 && this.validDomains.includes( parts[ 1 ] )
-        },
+        const isValidEmail = computed( () => {
+            if ( !email.value || !validDomains.value.length ) return false
+            const parts = email.value.split( '@' )
+            return parts.length === 2 && parts[ 0 ].length > 0 && validDomains.value.includes( parts[ 1 ] )
+        } )
 
-        user() {
-            return this.email.split( '@' )[ 0 ] || ''
-        },
-    },
+        const user = computed( () => email.value.split( '@' )[ 0 ] || '' )
 
-    watch: {
+        // Toast
+        function toast( message ) {
+            const el = document.createElement( 'div' )
+            el.className = 'toast wa-dark'
+            el.textContent = message
+            document.body.appendChild( el )
+            setTimeout( () => el.remove(), 5000 )
+        }
 
-        mailsent( newVal ) {
+        // Watch
+        watch( mailsent, ( newVal ) => {
             if ( newVal )
             {
-                this.$nextTick( () => {
-                    if ( this.$refs.pinInput )
-                    {
-                        this.$refs.pinInput.focus()
-                    }
-                } )
+                nextTick( () => pinInput.value?.focus() )
             }
-        },
+        } )
 
-    },
-
-    methods: {
-
-        async sendCode() {
-
+        // Methods
+        async function sendCode() {
             try
             {
                 const response = await fetch( '/login', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify( {
-                        user: this.user,
-                        provider_domain: this.emailDomain,
-                        provider_id: this.provider_id,
-                        redirect: this.redirect,
+                        user: user.value,
+                        provider_domain: emailDomain.value,
+                        provider_id: provider_id.value,
+                        redirect: redirect.value,
                     } )
                 } )
 
@@ -93,82 +68,91 @@ new Vue( {
 
                 if ( data.success )
                 {
-                    this.$toasted.show( data.success )
-                    this.mailsent = true
+                    toast( data.success )
+                    mailsent.value = true
                 }
                 else if ( data.error )
                 {
-                    this.$toasted.show( data.error )
+                    toast( data.error )
                 }
             }
             catch ( err )
             {
-                this.$toasted.show( err.message )
+                toast( err.message )
             }
-        },
+        }
 
-        async verifyCode() {
-
+        async function verifyCode() {
             try
             {
                 const response = await fetch( '/verify-pin', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify( {
-                        user: this.user,
-                        pin: this.pin,
-                        provider_id: this.provider_id,
-                        provider_domain: this.emailDomain,
+                        user: user.value,
+                        pin: pin.value,
+                        provider_id: provider_id.value,
+                        provider_domain: emailDomain.value,
                     } )
                 } )
+
                 const data = await response.json()
 
                 if ( !data.error )
                 {
-                    this.$toasted.show( 'Authenticated. Redirecting...' )
+                    toast( 'Authenticated. Redirecting...' )
                     const redirectUrl = new URL( data.success.redirect )
                     redirectUrl.searchParams.set( 'session', data.success.token )
                     window.location.href = redirectUrl.toString()
                 }
                 else
                 {
-                    this.$toasted.show( data.error )
+                    toast( data.error )
                 }
             }
             catch ( err )
             {
-                this.$toasted.show( err.message )
+                toast( err.message )
             }
-        },
+        }
 
-    },
+        // Mounted
+        onMounted( async () => {
+            const params = new URLSearchParams( window.location.search )
+            redirect.value = params.get( 'redirect' ) || ''
+            provider_id.value = params.get( 'provider_id' ) || ''
+            brand_color.value = ( params.get( 'brand_color' ) || 'neutral' ).replace( /[^a-z0-9-]/gi, '' )
 
-    async mounted() {
+            const styleElement = document.createElement( 'style' )
+            styleElement.textContent = `:root {
+                --wa-color-brand-20: var(--wa-color-${brand_color.value}-20);
+                --wa-color-brand-90: var(--wa-color-${brand_color.value}-90);
+                --wa-color-text-link: var(--wa-color-${brand_color.value}-50);
+                --wa-color-focus: var(--wa-color-${brand_color.value}-50);
+            }`
+            document.head.appendChild( styleElement )
 
-        const params = new URLSearchParams( window.location.search )
-        this.redirect = params.get( 'redirect' ) || ''
-        this.provider_id = params.get( 'provider_id' ) || ''
-        this.brand_color = ( params.get( 'brand_color' ) || 'neutral' ).replace( /[^a-z0-9-]/gi, '' )
+            const res = await fetch( '/settings' + ( provider_id.value ? `/${provider_id.value}` : '' ) )
+            settings.value = await res.json()
 
-        // Apply brand color
-        const styleElement = document.createElement( 'style' )
-        styleElement.textContent = `:root {
-            --wa-color-brand-20: var(--wa-color-${this.brand_color}-20);
-            --wa-color-brand-90: var(--wa-color-${this.brand_color}-90);
-            --wa-color-text-link: var(--wa-color-${this.brand_color}-50);
-            --wa-color-focus: var(--wa-color-${this.brand_color}-50);
-        }`
-        document.head.appendChild( styleElement )
+            if ( settings.value.error )
+                document.body.innerHTML = settings.value.error
+        } )
 
-        // Get settings for domain
-        const settings = await fetch( '/settings' + ( this.provider_id ? `/${this.provider_id}` : '' ) )
-        this.settings = await settings.json()
-
-        if ( this.settings.error )
-            return document.body.innerHTML = this.settings.error
-
-    },
+        return {
+            email,
+            settings,
+            pin,
+            mailsent,
+            isValidEmail,
+            pinInput,
+            myButton1,
+            myButton2,
+            sendCode,
+            verifyCode,
+        }
+    }
 
 } )
+
+app.mount( '#app' )
