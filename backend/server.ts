@@ -246,13 +246,14 @@ async function loadProviderConfig(c: AppContext, next: Next) {
 async function sendVerificationEmail(
     toEmail: string,
     pin: string,
-    fromAddress: string
+    fromAddress: string,
+    sv: boolean
 ): Promise<{ success: boolean; error?: string }> {
     const result = await resend.emails.send({
         from: fromAddress,
         to: toEmail,
-        subject: 'Your Verification Code',
-        html: `Your verification code is<br><h1>${pin}</h1>`
+        subject: sv ? 'Din verifieringskod' : 'Your Verification Code',
+        html: sv ? `Din verifieringskod är<br><h1>${pin}</h1>` : `Your verification code is<br><h1>${pin}</h1>`
     })
 
     if (result.error) {
@@ -291,25 +292,27 @@ app.get('/settings/:provider_id?', loadProviderConfig, async (c: AppContext) => 
 app.post('/login', loadProviderConfig, async (c: AppContext) => {
     const config = c.get('providerConfig')
     const body = c.get('requestBody')
-    const { user, redirect: redirectUrl, provider_domain: domain } = body as {
+    const { user, redirect: redirectUrl, provider_domain: domain, lang } = body as {
         user: string
         redirect: string
         provider_domain: string
+        lang?: string
     }
+    const sv = lang === 'sv'
 
     // Validate required fields
     if (!user || !domain || !redirectUrl) {
-        return c.json({ error: 'Missing required fields' }, 400)
+        return c.json({ error: sv ? 'Obligatoriska fält saknas' : 'Missing required fields' }, 400)
     }
 
     // Validate redirect URL
     if (!isValidRedirectUrl(redirectUrl)) {
-        return c.json({ error: 'Invalid redirect URL' }, 400)
+        return c.json({ error: sv ? 'Ogiltig omdirigerings-URL' : 'Invalid redirect URL' }, 400)
     }
 
     // Validate domain is allowed for this provider
     if (!config.mailDomains.includes(domain)) {
-        return c.json({ error: 'Invalid email domain' }, 400)
+        return c.json({ error: sv ? 'Ogiltig e-postdomän' : 'Invalid email domain' }, 400)
     }
 
     const email = buildEmail(user, domain)
@@ -317,7 +320,7 @@ app.post('/login', loadProviderConfig, async (c: AppContext) => {
     // Check rate limit
     const { maxAttempts, windowMs } = RATE_LIMITS.LOGIN
     if (!isRateLimitAllowed(loginRateLimits, email, maxAttempts, windowMs)) {
-        return c.json({ error: 'Too many login attempts. Try again later.' }, 429)
+        return c.json({ error: sv ? 'För många inloggningsförsök. Försök igen senare.' : 'Too many login attempts. Try again later.' }, 429)
     }
 
     // Generate PIN and JWT token
@@ -337,13 +340,13 @@ app.post('/login', loadProviderConfig, async (c: AppContext) => {
     })
 
     // Send verification email
-    const emailResult = await sendVerificationEmail(email, pin, config.sendAddress)
+    const emailResult = await sendVerificationEmail(email, pin, config.sendAddress, sv)
 
     if (!emailResult.success) {
-        return c.json({ error: emailResult.error || 'Failed to send email' }, 500)
+        return c.json({ error: emailResult.error || (sv ? 'Kunde inte skicka e-post' : 'Failed to send email') }, 500)
     }
 
-    return c.json({ success: `Verification code sent to ${email}` })
+    return c.json({ success: sv ? `Verifieringskod skickad till ${email}` : `Verification code sent to ${email}` })
 })
 
 /**
@@ -356,20 +359,22 @@ app.post('/login', loadProviderConfig, async (c: AppContext) => {
 app.post('/verify-pin', loadProviderConfig, async (c: AppContext) => {
     const config = c.get('providerConfig')
     const body = c.get('requestBody')
-    const { user, pin, provider_domain: domain } = body as {
+    const { user, pin, provider_domain: domain, lang } = body as {
         user: string
         pin: string
         provider_domain: string
+        lang?: string
     }
+    const sv = lang === 'sv'
 
     // Validate required fields
     if (!user || !domain || !pin) {
-        return c.json({ error: 'Missing required fields' }, 400)
+        return c.json({ error: sv ? 'Obligatoriska fält saknas' : 'Missing required fields' }, 400)
     }
 
     // Validate domain
     if (!config.mailDomains.includes(domain)) {
-        return c.json({ error: 'Invalid email domain' }, 400)
+        return c.json({ error: sv ? 'Ogiltig e-postdomän' : 'Invalid email domain' }, 400)
     }
 
     const email = buildEmail(user, domain)
@@ -378,25 +383,25 @@ app.post('/verify-pin', loadProviderConfig, async (c: AppContext) => {
     const { maxAttempts, windowMs } = RATE_LIMITS.PIN_VERIFY
     if (!isRateLimitAllowed(pinVerifyRateLimits, email, maxAttempts, windowMs)) {
         pendingAuthSessions.delete(email)
-        return c.json({ error: 'Too many attempts. Please request a new code.' }, 429)
+        return c.json({ error: sv ? 'För många försök. Begär en ny kod.' : 'Too many attempts. Please request a new code.' }, 429)
     }
 
     // Look up pending session
     const session = pendingAuthSessions.get(email)
 
     if (!session) {
-        return c.json({ error: 'No pending login found. Please start again.' }, 400)
+        return c.json({ error: sv ? 'Ingen väntande inloggning hittades. Börja om.' : 'No pending login found. Please start again.' }, 400)
     }
 
     // Check if PIN has expired
     if (session.expiresAt < Date.now()) {
         pendingAuthSessions.delete(email)
-        return c.json({ error: 'Code expired. Please request a new one.' }, 400)
+        return c.json({ error: sv ? 'Koden har gått ut. Begär en ny.' : 'Code expired. Please request a new one.' }, 400)
     }
 
     // Validate PIN (constant-time comparison)
     if (!secureCompare(session.pin, pin)) {
-        return c.json({ error: 'Invalid code' }, 400)
+        return c.json({ error: sv ? 'Ogiltig kod' : 'Invalid code' }, 400)
     }
 
     // Verify token is still valid
@@ -404,7 +409,7 @@ app.post('/verify-pin', loadProviderConfig, async (c: AppContext) => {
         await verify(session.token, config.secret)
     } catch {
         pendingAuthSessions.delete(email)
-        return c.json({ error: 'Session expired. Please start again.' }, 400)
+        return c.json({ error: sv ? 'Sessionen har gått ut. Börja om.' : 'Session expired. Please start again.' }, 400)
     }
 
     // Success - cleanup and return token

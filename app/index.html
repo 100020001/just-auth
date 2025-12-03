@@ -24,15 +24,15 @@
             </svg>
 
             <h3>
-                Sign in
+                {{ sv ? 'Logga in' : 'Sign in' }}
             </h3>
 
             <div class="wa-stack wa-gap-s">
                 <div>
-                    We need to verify your <mark>{{ settings.friendlyName }}</mark> account.
+                    {{ sv ? 'Vi behöver verifiera ditt' : 'We need to verify your' }} <mark>{{ settings.friendlyName }}</mark> {{ sv ? 'konto.' : 'account.' }}
                 </div>
                 <div>
-                    Enter your email address to receive a verification code.
+                    {{ sv ? 'Ange din e-postadress för att få en verifieringskod.' : 'Enter your email address to receive a verification code.' }}
                 </div>
             </div>
 
@@ -42,22 +42,22 @@
             <div class="wa-stack wa-gap-l">
 
                 <div class="wa-stack wa-gap-xs" v-if="!mailsent">
-                    <div class=wa-caption-m>My email</div>
+                    <div class=wa-caption-m>{{ sv ? 'Min e-post' : 'My email' }}</div>
                     <input v-model=email :placeholder="'john.doe@' + (settings.mailDomains?.[0] || 'company.com')" @keyup.enter="isValidEmail && $refs.myButton1.focus()" autofocus />
-                    <div class=wa-caption-xs>Use your {{ settings.mailDomains?.map(d => '@' + d).join(' or ') }} email</div>
+                    <div class=wa-caption-xs>{{ sv ? 'Använd din' : 'Use your' }} {{ settings.mailDomains?.map(d => '@' + d).join( sv ? ' eller ' : ' or ' ) }} {{ sv ? 'e-post' : 'email' }}</div>
                 </div>
                 <div class="wa-stack wa-gap-xs" v-else>
-                    <div class=wa-caption-m>Verification Code</div>
+                    <div class=wa-caption-m>{{ sv ? 'Verifieringskod' : 'Verification Code' }}</div>
                     <div>
                         <input v-model=pin placeholder="" style="font-family: var(--wa-font-family-code); text-align: center; letter-spacing: 1.5ch;" @keyup.enter="pin && $refs.myButton2.focus()" ref="pinInput" autofocus />
                     </div>
                 </div>
 
                 <button class="wa-size-m wa-neutral" ref=myButton1 @click=sendCode :disabled="!isValidEmail" v-if="!mailsent">
-                    Continue
+                    {{ sv ? 'Fortsätt' : 'Continue' }}
                 </button>
                 <button class="wa-size-m wa-neutral" ref=myButton2 @click=verifyCode :readonly="!pin.length" v-else>
-                    Verify
+                    {{ sv ? 'Verifiera' : 'Verify' }}
                 </button>
             </div>
 
@@ -65,7 +65,7 @@
 
         <div class="wa-stack wa-gap-2xs wa-caption-xs">
             <div>
-                {{ settings.friendlyName }} uses JustAuth. Effortless. Private. Yours.
+                {{ settings.friendlyName }} {{ sv ? 'använder JustAuth. Enkelt. Privat. Ditt.' : 'uses JustAuth. Effortless. Private. Yours.' }}
             </div>
             <div>
                 &copy; 2025 <a href="//justmorris.com" target=_new>JustMorris</a>.

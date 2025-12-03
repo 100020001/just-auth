@@ -1,5 +1,10 @@
 const { createApp, ref, computed, watch, nextTick, onMounted } = Vue
 
+// Lightweight i18n - true if Swedish
+const sv = navigator.language?.startsWith( 'sv' )
+
+document.title = sv ? 'Verifiera din e-post' : 'Verify Your Email'
+
 const app = createApp( {
 
     setup() {
@@ -61,6 +66,7 @@ const app = createApp( {
                         provider_domain: emailDomain.value,
                         provider_id: provider_id.value,
                         redirect: redirect.value,
+                        lang: sv ? 'sv' : 'en',
                     } )
                 } )
 
@@ -93,6 +99,7 @@ const app = createApp( {
                         pin: pin.value,
                         provider_id: provider_id.value,
                         provider_domain: emailDomain.value,
+                        lang: sv ? 'sv' : 'en',
                     } )
                 } )
 
@@ -100,7 +107,7 @@ const app = createApp( {
 
                 if ( !data.error )
                 {
-                    toast( 'Authenticated. Redirecting...' )
+                    toast( sv ? 'Autentiserad. Omdirigerar...' : 'Authenticated. Redirecting...' )
                     const redirectUrl = new URL( data.success.redirect )
                     redirectUrl.searchParams.set( 'session', data.success.token )
                     window.location.href = redirectUrl.toString()
@@ -150,6 +157,7 @@ const app = createApp( {
             myButton2,
             sendCode,
             verifyCode,
+            sv,
         }
     }
 
