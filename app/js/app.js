@@ -10,6 +10,7 @@ const app = createApp( {
     setup() {
 
         const email = ref( '' )
+        watch( email, ( v ) => email.value = v.toLowerCase() )
         const settings = ref( {} )
         const pin = ref( '' )
         const mailsent = ref( false )
