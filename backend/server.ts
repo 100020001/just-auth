@@ -406,7 +406,7 @@ app.post('/verify-pin', loadProviderConfig, async (c: AppContext) => {
 
     // Verify token is still valid
     try {
-        await verify(session.token, config.secret)
+        await verify(session.token, config.secret, 'HS256')
     } catch {
         pendingAuthSessions.delete(email)
         return c.json({ error: sv ? 'Sessionen har gått ut. Börja om.' : 'Session expired. Please start again.' }, 400)

@@ -7,7 +7,7 @@
         "dev": "bun --watch run backend/server.ts"
     },
     "dependencies": {
-        "hono": "^4.10.7",
+        "hono": "^4.11.7",
         "resend": "^6.5.2"
     },
     "devDependencies": {
