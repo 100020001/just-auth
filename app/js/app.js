@@ -1,4 +1,5 @@
-const { createApp, ref, computed, watch, nextTick, onMounted } = Vue
+import { createApp, ref, computed, watch, nextTick, onMounted } from 'vue/dist/vue.esm-bundler.js'
+import QRCode from 'qrcode'
 
 // Lightweight i18n - true if Swedish
 const sv = navigator.language?.startsWith( 'sv' )

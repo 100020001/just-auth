@@ -301,7 +301,7 @@ async function sendVerificationEmail(
 const app = new Hono<{ Variables: AppVariables }>()
 
 // Serve static files from /app directory
-app.use('/*', serveStatic({ root: './app' }))
+app.use('/*', serveStatic({ root: './dist' }))
 
 /**
  * GET /settings/:provider_id

@@ -8,9 +8,6 @@
     <link rel=stylesheet href=https://cdn.jsdelivr.net/npm/@awesome.me/webawesome@3/dist-cdn/styles/webawesome.css />
     <link rel=stylesheet href="/css/style.css" />
     <meta name=viewport content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-
-    <script src="https://unpkg.com/vue@3.5.28/dist/vue.global.prod.js" integrity="sha384-EyKhbIJoP1t1fKIFRNEfYKy4uy8qxs7UNS4Cab53xyXqCTUB1PCoxeFsD0G/NX9W" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js" integrity="sha384-HGmnkDZJy7mRkoARekrrj0VjEFSh9a0Z8qxGri/kTTAJkgR8hqD1lHsYSh3JdzRi" crossorigin="anonymous"></script>
 </head>
 
 <body class=wa-stack>
@@ -57,7 +54,7 @@
 
             <div class=card-columns>
 
-                <div class="wa-stack wa-gap-l">
+                <div class="wa-stack wa-gap-l" style="min-width: 330px;">
 
                     <div class="wa-stack wa-gap-xs" v-if="!mailsent">
                         <div class=wa-caption-m>{{ sv ? 'Min e-post' : 'My email' }}</div>
