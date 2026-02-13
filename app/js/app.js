@@ -22,6 +22,17 @@ const app = createApp( {
         const myButton1 = ref( null )
         const myButton2 = ref( null )
 
+        // QR login state
+        const qrState = ref( 'loading' )    // loading | ready | scanned | authenticated | expired
+        const qrSessionId = ref( '' )
+        const qrDataUrl = ref( '' )
+        const qrExpiryTimer = ref( null )
+        const qrPollTimer = ref( null )
+        const isQrSession = ref( false )
+        const qrMobileComplete = ref( false )
+        const qrPollErrors = ref( 0 )
+        const qrGeneration = ref( 0 )
+
         // Computed
         const validDomains = computed( () => settings.value.mailDomains || [] )
 
@@ -44,14 +55,28 @@ const app = createApp( {
             el.className = 'toast wa-dark'
             el.textContent = message
             document.body.appendChild( el )
-            setTimeout( () => el.remove(), 5000 )
+            setTimeout( () => {
+                el.classList.add( 'fade-out' )
+                el.addEventListener( 'animationend', () => el.remove() )
+            }, 4800 )
+        }
+
+        function redirectWithToken( url, token ) {
+            try {
+                const redirectUrl = new URL( url )
+                redirectUrl.searchParams.set( 'session', token )
+                window.location.href = redirectUrl.toString()
+            } catch {
+                toast( sv ? 'Ogiltig omdirigerings-URL' : 'Invalid redirect URL' )
+            }
         }
 
         // Watch
         watch( mailsent, ( newVal ) => {
-            if ( newVal )
-            {
+            if ( newVal ) {
                 nextTick( () => pinInput.value?.focus() )
+                clearTimeout( qrExpiryTimer.value )
+                clearTimeout( qrPollTimer.value )
             }
         } )
 
@@ -101,6 +126,7 @@ const app = createApp( {
                         provider_id: provider_id.value,
                         provider_domain: emailDomain.value,
                         lang: sv ? 'sv' : 'en',
+                        ...( isQrSession.value && { qr_session: qrSessionId.value } ),
                     } )
                 } )
 
@@ -108,10 +134,15 @@ const app = createApp( {
 
                 if ( !data.error )
                 {
-                    toast( sv ? 'Autentiserad. Omdirigerar...' : 'Authenticated. Redirecting...' )
-                    const redirectUrl = new URL( data.success.redirect )
-                    redirectUrl.searchParams.set( 'session', data.success.token )
-                    window.location.href = redirectUrl.toString()
+                    if ( data.success?.qr_completed )
+                    {
+                        qrMobileComplete.value = true
+                    }
+                    else
+                    {
+                        toast( sv ? 'Autentiserad. Omdirigerar...' : 'Authenticated. Redirecting...' )
+                        redirectWithToken( data.success.redirect, data.success.token )
+                    }
                 }
                 else
                 {
@@ -122,6 +153,101 @@ const app = createApp( {
             {
                 toast( err.message )
             }
+        }
+
+        // QR Methods
+        async function createQrSession() {
+            qrState.value = 'loading'
+            const gen = ++qrGeneration.value
+            try {
+                const res = await fetch( '/qr/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify( {
+                        provider_id: provider_id.value,
+                        redirect: redirect.value,
+                    } )
+                } )
+                if ( gen !== qrGeneration.value ) return
+                const data = await res.json()
+                if ( data.error ) {
+                    qrState.value = 'expired'
+                    return
+                }
+
+                qrSessionId.value = data.session_id
+
+                const qrUrl = `${window.location.origin}/?provider_id=${provider_id.value}`
+                    + `&redirect=${encodeURIComponent( redirect.value )}`
+                    + `&brand_color=${brand_color.value}`
+                    + `&qr_session=${data.session_id}`
+
+                qrDataUrl.value = await QRCode.toDataURL( qrUrl, {
+                    width: 160,
+                    margin: 2,
+                    color: { dark: '#000000', light: '#ffffff' }
+                } )
+
+                qrState.value = 'ready'
+                qrPollErrors.value = 0
+
+                qrExpiryTimer.value = setTimeout( () => {
+                    if ( qrState.value === 'ready' || qrState.value === 'scanned' ) {
+                        qrState.value = 'expired'
+                        clearTimeout( qrPollTimer.value )
+                    }
+                }, data.ttl_ms )
+
+                qrPollTimer.value = setTimeout( pollQrStatus, 5000 )
+            }
+            catch ( err ) {
+                console.warn( 'QR create error:', err.message )
+                qrState.value = 'expired'
+            }
+        }
+
+        async function pollQrStatus() {
+            const gen = qrGeneration.value
+            if ( qrState.value !== 'ready' && qrState.value !== 'scanned' ) return
+
+            try {
+                const res = await fetch( `/qr/status/${qrSessionId.value}` )
+                if ( gen !== qrGeneration.value ) return
+                const data = await res.json()
+                qrPollErrors.value = 0
+
+                if ( data.status === 'scanned' && qrState.value === 'ready' ) {
+                    qrState.value = 'scanned'
+                }
+                else if ( data.status === 'authenticated' ) {
+                    qrState.value = 'authenticated'
+                    clearTimeout( qrExpiryTimer.value )
+                    toast( sv ? 'Autentiserad. Omdirigerar...' : 'Authenticated. Redirecting...' )
+                    setTimeout( () => redirectWithToken( data.redirect, data.token ), 1500 )
+                    return
+                }
+                else if ( data.status === 'expired' ) {
+                    qrState.value = 'expired'
+                    return
+                }
+            }
+            catch ( err ) {
+                qrPollErrors.value++
+                console.warn( 'QR poll error:', err.message )
+                if ( qrPollErrors.value >= 5 ) {
+                    qrState.value = 'expired'
+                    return
+                }
+            }
+
+            if ( gen !== qrGeneration.value ) return
+            qrPollTimer.value = setTimeout( pollQrStatus, 5000 )
+        }
+
+        function refreshQr() {
+            clearTimeout( qrExpiryTimer.value )
+            clearTimeout( qrPollTimer.value )
+            createQrSession()
         }
 
         // Mounted
@@ -140,11 +266,34 @@ const app = createApp( {
             }`
             document.head.appendChild( styleElement )
 
-            const res = await fetch( '/settings' + ( provider_id.value ? `/${provider_id.value}` : '' ) )
-            settings.value = await res.json()
+            try {
+                const res = await fetch( '/settings' + ( provider_id.value ? `/${provider_id.value}` : '' ) )
+                settings.value = await res.json()
+            } catch {
+                document.body.textContent = sv ? 'Kunde inte ladda inställningar. Uppdatera sidan.' : 'Failed to load settings. Please refresh.'
+                return
+            }
 
-            if ( settings.value.error )
-                document.body.innerHTML = settings.value.error
+            if ( settings.value.error ) {
+                document.body.textContent = settings.value.error
+                return
+            }
+
+            // QR session detection
+            const qrSessionParam = params.get( 'qr_session' )
+            if ( qrSessionParam ) {
+                isQrSession.value = true
+                qrSessionId.value = qrSessionParam
+                fetch( `/qr/scanned/${qrSessionParam}`, { method: 'POST' } ).catch( () => {} )
+            }
+            else if ( redirect.value && provider_id.value ) {
+                createQrSession()
+            }
+
+            window.addEventListener( 'beforeunload', () => {
+                clearTimeout( qrExpiryTimer.value )
+                clearTimeout( qrPollTimer.value )
+            } )
         } )
 
         return {
@@ -159,6 +308,11 @@ const app = createApp( {
             sendCode,
             verifyCode,
             sv,
+            qrState,
+            qrDataUrl,
+            isQrSession,
+            qrMobileComplete,
+            refreshQr,
         }
     }
 

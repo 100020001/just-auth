@@ -51,7 +51,7 @@ html {
 }
 .card {
   margin: auto;
-  max-width: 460px;
+  max-width: 650px;
 }
 @media screen and (orientation: landscape) {
   .card {
@@ -70,9 +70,6 @@ input {
   min-width: 100%;
   width: 180px;
 }
-button[readonly] {
-  pointer-events: none;
-}
 .toast {
   position: fixed;
   bottom: var(--wa-space-2xl);
@@ -86,4 +83,20 @@ button[readonly] {
 }
 .toast.fade-out {
   animation: toastOut 0.2s ease-in forwards;
+}
+.card-columns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--wa-space-3xl);
+  align-items: flex-start;
+}
+.card-columns > :first-child {
+  flex: 1;
+  min-width: 200px;
+}
+.qr-section {
+  align-items: center;
+}
+.qr-section img.faded {
+  opacity: 0.3;
 }

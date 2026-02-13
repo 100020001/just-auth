@@ -9,14 +9,25 @@
     <link rel=stylesheet href="/css/style.css" />
     <meta name=viewport content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
-    <script src=https://unpkg.com/vue@3/dist/vue.global.prod.js></script>
+    <script src="https://unpkg.com/vue@3.5.28/dist/vue.global.prod.js" integrity="sha384-EyKhbIJoP1t1fKIFRNEfYKy4uy8qxs7UNS4Cab53xyXqCTUB1PCoxeFsD0G/NX9W" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js" integrity="sha384-HGmnkDZJy7mRkoARekrrj0VjEFSh9a0Z8qxGri/kTTAJkgR8hqD1lHsYSh3JdzRi" crossorigin="anonymous"></script>
 </head>
 
 <body class=wa-stack>
 
     <div id=app class="wa-stack wa-gap-3xl">
 
-        <div class=card>
+        <!-- Mobile QR: completion screen -->
+        <div class="card wa-stack wa-gap-l" v-if="isQrSession && qrMobileComplete" style="text-align: center">
+            <svg xmlns="http://www.w3.org/2000/svg" width=48 height=48 viewBox="0 0 24 24" fill=none stroke="var(--wa-color-success-50, green)" stroke-width=2 stroke-linecap=round stroke-linejoin=round>
+                <path d="M5 12l5 5l10 -10" />
+            </svg>
+            <h3>{{ sv ? 'Inloggning godkänd' : 'Login authorized' }}</h3>
+            <div>{{ sv ? 'Du kan nu stänga den här sidan.' : 'You can now close this page.' }}</div>
+        </div>
+
+        <!-- Main login card -->
+        <div class=card v-if="!qrMobileComplete">
 
             <svg xmlns="http://www.w3.org/2000/svg" width=32 height=32 viewBox="0 0 24 24" fill=none stroke=currentColor stroke-width=2 stroke-linecap=round stroke-linejoin=round>
                 <path d="M16.555 3.843l3.602 3.602a2.877 2.877 0 0 1 0 4.069l-2.643 2.643a2.877 2.877 0 0 1 -4.069 0l-.301 -.301l-6.558 6.558a2 2 0 0 1 -1.239 .578l-.175 .008h-1.172a1 1 0 0 1 -.993 -.883l-.007 -.117v-1.172a2 2 0 0 1 .467 -1.284l.119 -.13l.414 -.414h2v-2h2v-2l2.144 -2.144l-.301 -.301a2.877 2.877 0 0 1 0 -4.069l2.643 -2.643a2.877 2.877 0 0 1 4.069 0z" />
@@ -24,41 +35,70 @@
             </svg>
 
             <h3>
-                {{ sv ? 'Logga in' : 'Sign in' }}
+                {{ isQrSession ? ( sv ? 'Godkänn inloggning' : 'Authorize login' ) : ( sv ? 'Logga in' : 'Sign in' ) }}
             </h3>
 
             <div class="wa-stack wa-gap-s">
-                <div>
-                    {{ sv ? 'Vi behöver verifiera ditt' : 'We need to verify your' }} <mark>{{ settings.friendlyName }}</mark> {{ sv ? 'konto.' : 'account.' }}
+                <div v-if="isQrSession">
+                    {{ sv ? 'Ange din e-post för att godkänna inloggning på en annan enhet.' : 'Enter your email to authorize login on another device.' }}
                 </div>
-                <div>
-                    {{ sv ? 'Ange din e-postadress för att få en verifieringskod.' : 'Enter your email address to receive a verification code.' }}
-                </div>
+                <template v-else>
+                    <div>
+                        {{ sv ? 'Vi behöver verifiera ditt' : 'We need to verify your' }} <mark>{{ settings.friendlyName }}</mark> {{ sv ? 'konto.' : 'account.' }}
+                    </div>
+                    <div>
+                        {{ sv ? 'Ange din e-postadress för att få en verifieringskod.' : 'Enter your email address to receive a verification code.' }}
+                    </div>
+                </template>
             </div>
 
             <br>
             <br>
 
-            <div class="wa-stack wa-gap-l">
+            <div class=card-columns>
 
-                <div class="wa-stack wa-gap-xs" v-if="!mailsent">
-                    <div class=wa-caption-m>{{ sv ? 'Min e-post' : 'My email' }}</div>
-                    <input v-model=email :placeholder="'john.doe@' + (settings.mailDomains?.[0] || 'company.com')" @keyup.enter="isValidEmail && $refs.myButton1.focus()" autofocus />
-                    <div class=wa-caption-xs>{{ sv ? 'Använd din' : 'Use your' }} {{ settings.mailDomains?.map(d => '@' + d).join( sv ? ' eller ' : ' or ' ) }} {{ sv ? 'e-post' : 'email' }}</div>
-                </div>
-                <div class="wa-stack wa-gap-xs" v-else>
-                    <div class=wa-caption-m>{{ sv ? 'Verifieringskod' : 'Verification Code' }}</div>
-                    <div>
-                        <input v-model=pin placeholder="" style="font-family: var(--wa-font-family-code); text-align: center; letter-spacing: 1.5ch;" @keyup.enter="pin && $refs.myButton2.focus()" ref="pinInput" autofocus />
+                <div class="wa-stack wa-gap-l">
+
+                    <div class="wa-stack wa-gap-xs" v-if="!mailsent">
+                        <div class=wa-caption-m>{{ sv ? 'Min e-post' : 'My email' }}</div>
+                        <input v-model=email :placeholder="'john.doe@' + (settings.mailDomains?.[0] || 'company.com')" @keyup.enter="isValidEmail && $refs.myButton1.focus()" autofocus />
+                        <div class=wa-caption-xs>{{ sv ? 'Använd din' : 'Use your' }} {{ settings.mailDomains?.map(d => '@' + d).join( sv ? ' eller ' : ' or ' ) }} {{ sv ? 'e-post' : 'email' }}</div>
                     </div>
+                    <div class="wa-stack wa-gap-xs" v-else>
+                        <div class=wa-caption-m>{{ sv ? 'Verifieringskod' : 'Verification Code' }}</div>
+                        <div>
+                            <input v-model=pin placeholder="" style="font-family: var(--wa-font-family-code); text-align: center; letter-spacing: 1.5ch;" @keyup.enter="pin && $refs.myButton2.focus()" ref="pinInput" autofocus />
+                        </div>
+                    </div>
+
+                    <button class="wa-size-m wa-neutral" ref=myButton1 @click=sendCode :disabled="!isValidEmail" v-if="!mailsent">
+                        {{ sv ? 'Fortsätt' : 'Continue' }}
+                    </button>
+                    <button class="wa-size-m wa-neutral" ref=myButton2 @click=verifyCode :disabled="!pin.length" v-else>
+                        {{ sv ? 'Verifiera' : 'Verify' }}
+                    </button>
                 </div>
 
-                <button class="wa-size-m wa-neutral" ref=myButton1 @click=sendCode :disabled="!isValidEmail" v-if="!mailsent">
-                    {{ sv ? 'Fortsätt' : 'Continue' }}
-                </button>
-                <button class="wa-size-m wa-neutral" ref=myButton2 @click=verifyCode :readonly="!pin.length" v-else>
-                    {{ sv ? 'Verifiera' : 'Verify' }}
-                </button>
+                <div class="qr-section wa-stack wa-gap-xs" v-if="!isQrSession && !mailsent" style="text-align: center">
+                    <div v-if="qrState === 'loading'" style="width: 160px; height: 160px; margin: 0 auto"></div>
+                    <img v-if="qrState === 'ready'" :src=qrDataUrl alt="QR code for login" width=160 height=160 />
+                    <div v-if="qrState === 'scanned'" class="wa-stack wa-gap-s">
+                        <img :src=qrDataUrl class=faded width=160 height=160 alt="QR code scanned" />
+                        <div class=wa-caption-xs>{{ sv ? 'Skannad! Väntar på inloggning...' : 'Scanned! Waiting for login...' }}</div>
+                    </div>
+                    <div v-if="qrState === 'authenticated'" class="wa-stack wa-gap-s" style="margin: 0 auto">
+                        <svg xmlns="http://www.w3.org/2000/svg" width=48 height=48 viewBox="0 0 24 24" fill=none stroke="var(--wa-color-success-50, green)" stroke-width=2 stroke-linecap=round stroke-linejoin=round>
+                            <path d="M5 12l5 5l10 -10" />
+                        </svg>
+                        <div class=wa-caption-xs>{{ sv ? 'Autentiserad! Omdirigerar...' : 'Authenticated! Redirecting...' }}</div>
+                    </div>
+                    <div v-if="qrState === 'expired'" class="wa-stack wa-gap-s">
+                        <div class=wa-caption-xs>{{ sv ? 'QR-koden har gått ut' : 'QR code expired' }}</div>
+                        <button class="wa-size-s wa-neutral" @click=refreshQr>{{ sv ? 'Uppdatera' : 'Refresh' }}</button>
+                    </div>
+                    <div class=wa-caption-xs v-if="qrState === 'ready'">{{ sv ? 'Logga in via annan enhet' : 'Login using other device' }}</div>
+                </div>
+
             </div>
 
         </div>

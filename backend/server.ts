@@ -2,7 +2,7 @@ import { Hono, Context, Next } from 'hono'
 import { serveStatic } from 'hono/bun'
 import { sign, verify } from 'hono/jwt'
 import { Resend } from 'resend'
-import { randomInt, timingSafeEqual } from 'crypto'
+import { randomInt, randomBytes, timingSafeEqual } from 'crypto'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -23,6 +23,16 @@ interface ProviderConfig {
     secret: string
     mailDomains: string[]
     sendAddress: string
+    redirectDomains?: string[]
+}
+
+/** QR login session stored while awaiting mobile authentication */
+interface QrSession {
+    providerId: string
+    redirectUrl: string
+    status: 'pending' | 'scanned' | 'authenticated'
+    token?: string
+    expiresAt: number
 }
 
 /** Rate limit tracking entry */
@@ -45,11 +55,13 @@ type AppContext = Context<{ Variables: AppVariables }>
 
 const RATE_LIMITS = {
     LOGIN: { maxAttempts: 5, windowMs: 60 * 1000 },           // 5 attempts per minute
-    PIN_VERIFY: { maxAttempts: 5, windowMs: 15 * 60 * 1000 }  // 5 attempts per 15 minutes
+    PIN_VERIFY: { maxAttempts: 5, windowMs: 15 * 60 * 1000 }, // 5 attempts per 15 minutes
+    QR_CREATE: { maxAttempts: 10, windowMs: 60 * 1000 },      // 10 per minute
 } as const
 
 const TOKEN_EXPIRY_SECONDS = 60 * 60 * 24 * 30  // 30 days
 const PIN_EXPIRY_MS = 10 * 60 * 1000            // 10 minutes
+const QR_SESSION_EXPIRY_MS = 5 * 60 * 1000     // 5 minutes
 const CLEANUP_INTERVAL_MS = 60 * 1000           // 1 minute
 
 // ============================================================================
@@ -64,6 +76,12 @@ const loginRateLimits = new Map<string, RateLimitEntry>()
 
 /** Maps email -> PIN verification rate limit tracking */
 const pinVerifyRateLimits = new Map<string, RateLimitEntry>()
+
+/** Maps provider_id -> QR create rate limit tracking */
+const qrCreateRateLimits = new Map<string, RateLimitEntry>()
+
+/** Maps sessionId -> QR login session */
+const qrSessions = new Map<string, QrSession>()
 
 // ============================================================================
 // Utility Functions
@@ -91,6 +109,18 @@ function cleanupExpiredEntries(): void {
     for (const [email, limit] of pinVerifyRateLimits) {
         if (limit.windowExpiresAt < now) {
             pinVerifyRateLimits.delete(email)
+        }
+    }
+
+    for (const [id, session] of qrSessions) {
+        if (session.expiresAt < now) {
+            qrSessions.delete(id)
+        }
+    }
+
+    for (const [key, limit] of qrCreateRateLimits) {
+        if (limit.windowExpiresAt < now) {
+            qrCreateRateLimits.delete(key)
         }
     }
 }
@@ -168,11 +198,12 @@ function secureCompare(a: string, b: string): boolean {
 /**
  * Validates redirect URL is HTTPS (or localhost for development).
  */
-function isValidRedirectUrl(url: string): boolean {
+function isValidRedirectUrl(url: string, allowedDomains?: string[]): boolean {
     try {
         const parsed = new URL(url)
         const isLocalhost = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1'
-        return parsed.protocol === 'https:' || isLocalhost
+        if (parsed.protocol !== 'https:' && !isLocalhost) return false
+        return !allowedDomains?.length || allowedDomains.includes(parsed.hostname)
     } catch {
         return false
     }
@@ -306,7 +337,7 @@ app.post('/login', loadProviderConfig, async (c: AppContext) => {
     }
 
     // Validate redirect URL
-    if (!isValidRedirectUrl(redirectUrl)) {
+    if (!isValidRedirectUrl(redirectUrl, config.redirectDomains)) {
         return c.json({ error: sv ? 'Ogiltig omdirigerings-URL' : 'Invalid redirect URL' }, 400)
     }
 
@@ -412,9 +443,30 @@ app.post('/verify-pin', loadProviderConfig, async (c: AppContext) => {
         return c.json({ error: sv ? 'Sessionen har gått ut. Börja om.' : 'Session expired. Please start again.' }, 400)
     }
 
+    // QR flow: validate QR session before consuming the pending auth
+    const qrSessionId = body.qr_session as string
+    const qrSession = qrSessionId ? qrSessions.get(qrSessionId) : undefined
+    if (qrSessionId) {
+        if (!qrSession || qrSession.expiresAt < Date.now()) {
+            return c.json({ error: sv ? 'QR-sessionen har gått ut. Försök igen.' : 'QR session expired. Please try again.' }, 400)
+        }
+        if (qrSession.providerId !== (body.provider_id as string)) {
+            return c.json({ error: sv ? 'Ogiltig QR-session' : 'Invalid QR session' }, 400)
+        }
+        if (qrSession.status !== 'scanned') {
+            return c.json({ error: sv ? 'Ogiltig QR-sessionsstatus' : 'Invalid QR session state' }, 400)
+        }
+    }
+
     // Success - cleanup and return token
     pendingAuthSessions.delete(email)
     pinVerifyRateLimits.delete(email)
+
+    if (qrSession) {
+        qrSession.status = 'authenticated'
+        qrSession.token = session.token
+        return c.json({ success: { qr_completed: true } })
+    }
 
     return c.json({
         success: {
@@ -422,6 +474,92 @@ app.post('/verify-pin', loadProviderConfig, async (c: AppContext) => {
             redirect: session.redirectUrl
         }
     })
+})
+
+// ============================================================================
+// QR Code Login Flow
+// ============================================================================
+
+/**
+ * POST /qr/create
+ * Creates a new QR login session for a device without a keyboard.
+ *
+ * Request body: { provider_id, redirect }
+ * Response: { session_id, expires_at } or { error: string }
+ */
+app.post('/qr/create', loadProviderConfig, async (c: AppContext) => {
+    const body = c.get('requestBody')
+    const { redirect: redirectUrl, provider_id: providerId } = body as { redirect: string; provider_id: string }
+
+    if (!redirectUrl) {
+        return c.json({ error: 'Missing redirect URL' }, 400)
+    }
+
+    if (!isValidRedirectUrl(redirectUrl, c.get('providerConfig').redirectDomains)) {
+        return c.json({ error: 'Invalid redirect URL' }, 400)
+    }
+
+    const { maxAttempts, windowMs } = RATE_LIMITS.QR_CREATE
+    if (!isRateLimitAllowed(qrCreateRateLimits, providerId, maxAttempts, windowMs)) {
+        return c.json({ error: 'Too many requests. Try again later.' }, 429)
+    }
+
+    const sessionId = randomBytes(32).toString('hex')
+
+    qrSessions.set(sessionId, {
+        providerId,
+        redirectUrl,
+        status: 'pending',
+        expiresAt: Date.now() + QR_SESSION_EXPIRY_MS
+    })
+
+    return c.json({
+        session_id: sessionId,
+        ttl_ms: QR_SESSION_EXPIRY_MS
+    }, 201)
+})
+
+/**
+ * GET /qr/status/:session_id
+ * Polled by the original device to check if auth completed.
+ * Returns token on success and deletes the session (one-time retrieval).
+ */
+app.get('/qr/status/:session_id', async (c) => {
+    const sessionId = c.req.param('session_id')
+    const session = qrSessions.get(sessionId)
+
+    if (!session || session.expiresAt < Date.now()) {
+        if (session) qrSessions.delete(sessionId)
+        return c.json({ status: 'expired' }, 404)
+    }
+
+    if (session.status === 'authenticated' && session.token) {
+        const { token, redirectUrl } = session
+        qrSessions.delete(sessionId)
+        return c.json({ status: 'authenticated', token, redirect: redirectUrl })
+    }
+
+    return c.json({ status: session.status })
+})
+
+/**
+ * POST /qr/scanned/:session_id
+ * Called by the mobile device when it opens the QR URL.
+ * Transitions session from pending to scanned.
+ */
+app.post('/qr/scanned/:session_id', async (c) => {
+    const sessionId = c.req.param('session_id')
+    const session = qrSessions.get(sessionId)
+
+    if (!session || session.expiresAt < Date.now()) {
+        return c.json({ error: 'Session not found or expired' }, 404)
+    }
+
+    if (session.status === 'pending') {
+        session.status = 'scanned'
+    }
+
+    return c.json({ status: session.status })
 })
 
 export default app
