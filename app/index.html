@@ -54,7 +54,7 @@
 
             <div class=card-columns>
 
-                <div class="wa-stack wa-gap-l" style="min-width: 330px;">
+                <div class="wa-stack wa-gap-l" style="min-width: 320px;">
 
                     <div class="wa-stack wa-gap-xs" v-if="!mailsent">
                         <div class=wa-caption-m>{{ sv ? 'Min e-post' : 'My email' }}</div>
@@ -81,13 +81,13 @@
                     <img v-if="qrState === 'ready'" :src=qrDataUrl alt="QR code for login" width=160 height=160 />
                     <div v-if="qrState === 'scanned'" class="wa-stack wa-gap-s">
                         <img :src=qrDataUrl class=faded width=160 height=160 alt="QR code scanned" />
-                        <div class=wa-caption-xs>{{ sv ? 'Skannad! Väntar på inloggning...' : 'Scanned! Waiting for login...' }}</div>
+                        <div class=wa-caption-xs>{{ sv ? 'Väntar på inloggning...' : 'Waiting for login...' }}</div>
                     </div>
                     <div v-if="qrState === 'authenticated'" class="wa-stack wa-gap-s" style="margin: 0 auto">
                         <svg xmlns="http://www.w3.org/2000/svg" width=48 height=48 viewBox="0 0 24 24" fill=none stroke="var(--wa-color-success-50, green)" stroke-width=2 stroke-linecap=round stroke-linejoin=round>
                             <path d="M5 12l5 5l10 -10" />
                         </svg>
-                        <div class=wa-caption-xs>{{ sv ? 'Autentiserad! Omdirigerar...' : 'Authenticated! Redirecting...' }}</div>
+                        <div class=wa-caption-xs>{{ sv ? 'Omdirigerar...' : 'Redirecting...' }}</div>
                     </div>
                     <div v-if="qrState === 'expired'" class="wa-stack wa-gap-s">
                         <div class=wa-caption-xs>{{ sv ? 'QR-koden har gått ut' : 'QR code expired' }}</div>
