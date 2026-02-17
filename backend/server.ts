@@ -30,7 +30,7 @@ interface ProviderConfig {
 interface QrSession {
     providerId: string
     redirectUrl: string
-    status: 'pending' | 'scanned' | 'authenticated'
+    status: 'pending' | 'scanned' | 'awaiting_choice' | 'authenticated'
     token?: string
     expiresAt: number
 }
@@ -463,8 +463,13 @@ app.post('/verify-pin', loadProviderConfig, async (c: AppContext) => {
     pinVerifyRateLimits.delete(email)
 
     if (qrSession) {
-        qrSession.status = 'authenticated'
         qrSession.token = session.token
+        const { secret: _, ...publicConfig } = config
+        if ((publicConfig as any).choices) {
+            qrSession.status = 'awaiting_choice'
+            return c.json({ success: { choose: (publicConfig as any).choices } })
+        }
+        qrSession.status = 'authenticated'
         return c.json({ success: { qr_completed: true } })
     }
 
@@ -560,6 +565,35 @@ app.post('/qr/scanned/:session_id', async (c) => {
     }
 
     return c.json({ status: session.status })
+})
+
+/**
+ * POST /qr/choose/:session_id
+ * Called by mobile device after PIN verification to submit a choice (e.g. driftställe).
+ * Appends the choice as a query param to the redirect URL and marks session as authenticated.
+ */
+app.post('/qr/choose/:session_id', async (c) => {
+    const sessionId = c.req.param('session_id')
+    const session = qrSessions.get(sessionId)
+
+    if (!session || session.expiresAt < Date.now()) {
+        return c.json({ error: 'Session not found or expired' }, 404)
+    }
+    if (session.status !== 'awaiting_choice') {
+        return c.json({ error: 'Invalid session state' }, 400)
+    }
+
+    const body = await c.req.json().catch(() => null)
+    if (!body?.param || !body?.value) {
+        return c.json({ error: 'Missing param or value' }, 400)
+    }
+
+    const url = new URL(session.redirectUrl)
+    url.searchParams.set(body.param, body.value)
+    session.redirectUrl = url.toString()
+    session.status = 'authenticated'
+
+    return c.json({ success: true })
 })
 
 export default app

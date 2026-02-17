@@ -14,6 +14,14 @@
 
     <div id=app class="wa-stack wa-gap-3xl">
 
+        <!-- Mobile QR: choose driftställe -->
+        <div class="card wa-stack wa-gap-l" v-if="isQrSession && qrChoices" style="text-align: center">
+            <div class=wa-caption-m>{{ qrChoices.label }}</div>
+            <div style="display: flex; gap: .75rem">
+                <button v-for="opt in qrChoices.options" :key="opt.value" class="wa-size-l wa-neutral" style="flex: 1" @click="submitChoice(opt.value)">{{ opt.label }}</button>
+            </div>
+        </div>
+
         <!-- Mobile QR: completion screen -->
         <div class="card wa-stack wa-gap-l" v-if="isQrSession && qrMobileComplete" style="text-align: center">
             <svg xmlns="http://www.w3.org/2000/svg" width=48 height=48 viewBox="0 0 24 24" fill=none stroke="var(--wa-color-success-50, green)" stroke-width=2 stroke-linecap=round stroke-linejoin=round>

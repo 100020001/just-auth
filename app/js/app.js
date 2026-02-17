@@ -62,6 +62,8 @@ const app = createApp( {
             }, 4800 )
         }
 
+        const qrChoices = ref( null )
+
         function redirectWithToken( url, token ) {
             try {
                 const redirectUrl = new URL( url )
@@ -70,6 +72,20 @@ const app = createApp( {
             } catch {
                 toast( sv ? 'Ogiltig omdirigerings-URL' : 'Invalid redirect URL' )
             }
+        }
+
+        async function submitChoice( value ) {
+            try {
+                const res = await fetch( `/qr/choose/${qrSessionId.value}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify( { param: qrChoices.value.param, value } )
+                } )
+                if ( res.ok ) {
+                    qrChoices.value = null
+                    qrMobileComplete.value = true
+                }
+            } catch {}
         }
 
         // Watch
@@ -135,7 +151,11 @@ const app = createApp( {
 
                 if ( !data.error )
                 {
-                    if ( data.success?.qr_completed )
+                    if ( data.success?.choose )
+                    {
+                        qrChoices.value = data.success.choose
+                    }
+                    else if ( data.success?.qr_completed )
                     {
                         qrMobileComplete.value = true
                     }
@@ -313,7 +333,9 @@ const app = createApp( {
             qrDataUrl,
             isQrSession,
             qrMobileComplete,
+            qrChoices,
             refreshQr,
+            submitChoice,
         }
     }
 
