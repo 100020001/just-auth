@@ -78,6 +78,7 @@ const app = createApp( {
         async function submitChoice( value ) {
             const param = choices.value.param
             choices.value = null
+            window.scrollTo( 0, 0 )
             if ( isQrSession.value ) {
                 const res = await fetch( `/qr/choose/${qrSessionId.value}`, {
                     method: 'POST',
@@ -159,10 +160,12 @@ const app = createApp( {
                     {
                         choices.value = data.success.choose
                         if ( data.success.token ) pendingRedirect.value = { token: data.success.token, redirect: data.success.redirect }
+                        nextTick( () => window.scrollTo( 0, 0 ) )
                     }
                     else if ( data.success?.qr_completed )
                     {
                         qrMobileComplete.value = true
+                        nextTick( () => window.scrollTo( 0, 0 ) )
                     }
                     else
                     {
