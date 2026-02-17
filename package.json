@@ -3,19 +3,21 @@
     "version": "1.0.0",
     "main": "backend/server.ts",
     "scripts": {
-        "build": "bun run build.ts",
-        "start": "bun run build.ts && bun run backend/server.ts",
-        "dev": "bun run build.ts --watch & bun --watch run backend/server.ts"
+        "build": "vite build",
+        "start": "vite build && bun run backend/server.ts",
+        "dev": "bun --watch run backend/server.ts & vite"
     },
     "dependencies": {
         "hono": "^4.11.7",
+        "open-props": "^1.7.23",
         "qrcode": "^1.5.4",
         "resend": "^6.5.2",
         "vue": "^3.5.28"
     },
     "devDependencies": {
         "bun-types": "^1.3.3",
-        "typescript": "^5.9.3"
+        "typescript": "^5.9.3",
+        "vite": "^7.3.1"
     },
     "type": "module"
 }

@@ -91,38 +91,19 @@ const qrSessions = new Map<string, QrSession>()
  * Removes expired entries from all in-memory stores.
  * Runs periodically to prevent memory leaks.
  */
-function cleanupExpiredEntries(): void {
+function purgeExpired<T>(store: Map<string, T>, getExpiry: (v: T) => number): void {
     const now = Date.now()
-
-    for (const [email, session] of pendingAuthSessions) {
-        if (session.expiresAt < now) {
-            pendingAuthSessions.delete(email)
-        }
+    for (const [key, entry] of store) {
+        if (getExpiry(entry) < now) store.delete(key)
     }
+}
 
-    for (const [email, limit] of loginRateLimits) {
-        if (limit.windowExpiresAt < now) {
-            loginRateLimits.delete(email)
-        }
-    }
-
-    for (const [email, limit] of pinVerifyRateLimits) {
-        if (limit.windowExpiresAt < now) {
-            pinVerifyRateLimits.delete(email)
-        }
-    }
-
-    for (const [id, session] of qrSessions) {
-        if (session.expiresAt < now) {
-            qrSessions.delete(id)
-        }
-    }
-
-    for (const [key, limit] of qrCreateRateLimits) {
-        if (limit.windowExpiresAt < now) {
-            qrCreateRateLimits.delete(key)
-        }
-    }
+function cleanupExpiredEntries(): void {
+    purgeExpired(pendingAuthSessions, e => e.expiresAt)
+    purgeExpired(qrSessions, e => e.expiresAt)
+    purgeExpired(loginRateLimits, e => e.windowExpiresAt)
+    purgeExpired(pinVerifyRateLimits, e => e.windowExpiresAt)
+    purgeExpired(qrCreateRateLimits, e => e.windowExpiresAt)
 }
 
 setInterval(cleanupExpiredEntries, CLEANUP_INTERVAL_MS)
@@ -221,6 +202,20 @@ async function parseJsonBody<T>(c: AppContext): Promise<T | null> {
     }
 }
 
+/**
+ * Validates common auth fields from request body: user, domain, language.
+ * Returns built email + sv flag, or an error string.
+ */
+function validateAuth(body: Record<string, unknown>, config: ProviderConfig):
+    { email: string; sv: boolean } | { error: string } {
+    const user = body.user as string
+    const domain = body.provider_domain as string
+    const sv = (body.lang as string) === 'sv'
+    if (!user || !domain) return { error: sv ? 'Obligatoriska fält saknas' : 'Missing required fields' }
+    if (!config.mailDomains.includes(domain)) return { error: sv ? 'Ogiltig e-postdomän' : 'Invalid email domain' }
+    return { email: buildEmail(user, domain), sv }
+}
+
 // ============================================================================
 // Middleware
 // ============================================================================
@@ -310,7 +305,7 @@ app.use('/*', async (c, next) => {
     const path = c.req.path
     if (path.endsWith('.html') || path === '/') {
         c.header('Cache-Control', 'no-cache')
-    } else if (path.match(/\.[a-f0-9]{8,}\./)) {
+    } else if (path.startsWith('/assets/')) {
         c.header('Cache-Control', 'public, max-age=31536000, immutable')
     }
 })
@@ -336,30 +331,14 @@ app.get('/settings/:provider_id?', loadProviderConfig, async (c: AppContext) => 
 app.post('/login', loadProviderConfig, async (c: AppContext) => {
     const config = c.get('providerConfig')
     const body = c.get('requestBody')
-    const { user, redirect: redirectUrl, provider_domain: domain, lang } = body as {
-        user: string
-        redirect: string
-        provider_domain: string
-        lang?: string
-    }
-    const sv = lang === 'sv'
+    const auth = validateAuth(body, config)
+    if ('error' in auth) return c.json({ error: auth.error }, 400)
+    const { email, sv } = auth
 
-    // Validate required fields
-    if (!user || !domain || !redirectUrl) {
-        return c.json({ error: sv ? 'Obligatoriska fält saknas' : 'Missing required fields' }, 400)
-    }
-
-    // Validate redirect URL
-    if (!isValidRedirectUrl(redirectUrl, config.redirectDomains)) {
+    const redirectUrl = body.redirect as string
+    if (!redirectUrl || !isValidRedirectUrl(redirectUrl, config.redirectDomains)) {
         return c.json({ error: sv ? 'Ogiltig omdirigerings-URL' : 'Invalid redirect URL' }, 400)
     }
-
-    // Validate domain is allowed for this provider
-    if (!config.mailDomains.includes(domain)) {
-        return c.json({ error: sv ? 'Ogiltig e-postdomän' : 'Invalid email domain' }, 400)
-    }
-
-    const email = buildEmail(user, domain)
 
     // Check rate limit
     const { maxAttempts, windowMs } = RATE_LIMITS.LOGIN
@@ -403,25 +382,12 @@ app.post('/login', loadProviderConfig, async (c: AppContext) => {
 app.post('/verify-pin', loadProviderConfig, async (c: AppContext) => {
     const config = c.get('providerConfig')
     const body = c.get('requestBody')
-    const { user, pin, provider_domain: domain, lang } = body as {
-        user: string
-        pin: string
-        provider_domain: string
-        lang?: string
-    }
-    const sv = lang === 'sv'
+    const auth = validateAuth(body, config)
+    if ('error' in auth) return c.json({ error: auth.error }, 400)
+    const { email, sv } = auth
 
-    // Validate required fields
-    if (!user || !domain || !pin) {
-        return c.json({ error: sv ? 'Obligatoriska fält saknas' : 'Missing required fields' }, 400)
-    }
-
-    // Validate domain
-    if (!config.mailDomains.includes(domain)) {
-        return c.json({ error: sv ? 'Ogiltig e-postdomän' : 'Invalid email domain' }, 400)
-    }
-
-    const email = buildEmail(user, domain)
+    const pin = body.pin as string
+    if (!pin) return c.json({ error: sv ? 'Obligatoriska fält saknas' : 'Missing required fields' }, 400)
 
     // Check rate limit - invalidate session if exceeded
     const { maxAttempts, windowMs } = RATE_LIMITS.PIN_VERIFY

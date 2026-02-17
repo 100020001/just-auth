@@ -1,10 +1,21 @@
+import 'open-props/style'
+import '../css/style.css'
 import { createApp, ref, computed, watch, nextTick, onMounted } from 'vue/dist/vue.esm-bundler.js'
 import QRCode from 'qrcode'
 
 // Lightweight i18n - true if Swedish
 const sv = navigator.language?.startsWith( 'sv' )
+const QR_POLL_MS = 5000
 
 document.title = sv ? 'Verifiera din e-post' : 'Verify Your Email'
+
+function postJson( url, body ) {
+    return fetch( url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify( body )
+    } ).then( r => r.json() )
+}
 
 const app = createApp( {
 
@@ -20,8 +31,6 @@ const app = createApp( {
         const brand_color = ref( 'neutral' )
 
         const pinInput = ref( null )
-        const myButton1 = ref( null )
-        const myButton2 = ref( null )
 
         // QR login state
         const qrState = ref( 'loading' )    // loading | ready | scanned | authenticated | expired
@@ -53,7 +62,7 @@ const app = createApp( {
         // Toast
         function toast( message ) {
             const el = document.createElement( 'div' )
-            el.className = 'toast wa-dark'
+            el.className = 'toast'
             el.textContent = message
             document.body.appendChild( el )
             setTimeout( () => {
@@ -104,84 +113,42 @@ const app = createApp( {
 
         // Methods
         async function sendCode() {
-            try
-            {
-                const response = await fetch( '/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify( {
-                        user: user.value,
-                        provider_domain: emailDomain.value,
-                        provider_id: provider_id.value,
-                        redirect: redirect.value,
-                        lang: sv ? 'sv' : 'en',
-                    } )
+            try {
+                const data = await postJson( '/login', {
+                    user: user.value,
+                    provider_domain: emailDomain.value,
+                    provider_id: provider_id.value,
+                    redirect: redirect.value,
+                    lang: sv ? 'sv' : 'en',
                 } )
-
-                const data = await response.json()
-
-                if ( data.success )
-                {
-                    toast( data.success )
-                    mailsent.value = true
-                }
-                else if ( data.error )
-                {
-                    toast( data.error )
-                }
-            }
-            catch ( err )
-            {
-                toast( err.message )
-            }
+                if ( data.success ) { toast( data.success ); mailsent.value = true }
+                else if ( data.error ) toast( data.error )
+            } catch ( err ) { toast( err.message ) }
         }
 
         async function verifyCode() {
-            try
-            {
-                const response = await fetch( '/verify-pin', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify( {
-                        user: user.value,
-                        pin: pin.value,
-                        provider_id: provider_id.value,
-                        provider_domain: emailDomain.value,
-                        lang: sv ? 'sv' : 'en',
-                        ...( isQrSession.value && { qr_session: qrSessionId.value } ),
-                    } )
+            try {
+                const data = await postJson( '/verify-pin', {
+                    user: user.value,
+                    pin: pin.value,
+                    provider_id: provider_id.value,
+                    provider_domain: emailDomain.value,
+                    lang: sv ? 'sv' : 'en',
+                    ...( isQrSession.value && { qr_session: qrSessionId.value } ),
                 } )
-
-                const data = await response.json()
-
-                if ( !data.error )
-                {
-                    if ( data.success?.choose )
-                    {
-                        choices.value = data.success.choose
-                        if ( data.success.token ) pendingRedirect.value = { token: data.success.token, redirect: data.success.redirect }
-                        nextTick( () => window.scrollTo( 0, 0 ) )
-                    }
-                    else if ( data.success?.qr_completed )
-                    {
-                        qrMobileComplete.value = true
-                        nextTick( () => window.scrollTo( 0, 0 ) )
-                    }
-                    else
-                    {
-                        toast( sv ? 'Autentiserad. Omdirigerar...' : 'Authenticated. Redirecting...' )
-                        redirectWithToken( data.success.redirect, data.success.token )
-                    }
+                if ( data.error ) return toast( data.error )
+                if ( data.success?.choose ) {
+                    choices.value = data.success.choose
+                    if ( data.success.token ) pendingRedirect.value = { token: data.success.token, redirect: data.success.redirect }
+                    nextTick( () => window.scrollTo( 0, 0 ) )
+                } else if ( data.success?.qr_completed ) {
+                    qrMobileComplete.value = true
+                    nextTick( () => window.scrollTo( 0, 0 ) )
+                } else {
+                    toast( sv ? 'Autentiserad. Omdirigerar...' : 'Authenticated. Redirecting...' )
+                    redirectWithToken( data.success.redirect, data.success.token )
                 }
-                else
-                {
-                    toast( data.error )
-                }
-            }
-            catch ( err )
-            {
-                toast( err.message )
-            }
+            } catch ( err ) { toast( err.message ) }
         }
 
         // QR Methods
@@ -206,12 +173,13 @@ const app = createApp( {
 
                 qrSessionId.value = data.session_id
 
-                const qrUrl = `${window.location.origin}/?provider_id=${provider_id.value}`
-                    + `&redirect=${encodeURIComponent( redirect.value )}`
-                    + `&brand_color=${brand_color.value}`
-                    + `&qr_session=${data.session_id}`
+                const qrUrl = new URL( window.location.origin )
+                qrUrl.searchParams.set( 'provider_id', provider_id.value )
+                qrUrl.searchParams.set( 'redirect', redirect.value )
+                qrUrl.searchParams.set( 'brand_color', brand_color.value )
+                qrUrl.searchParams.set( 'qr_session', data.session_id )
 
-                qrDataUrl.value = await QRCode.toDataURL( qrUrl, {
+                qrDataUrl.value = await QRCode.toDataURL( qrUrl.toString(), {
                     width: 160,
                     margin: 2,
                     color: { dark: '#000000', light: '#ffffff' }
@@ -227,7 +195,7 @@ const app = createApp( {
                     }
                 }, data.ttl_ms )
 
-                qrPollTimer.value = setTimeout( pollQrStatus, 5000 )
+                qrPollTimer.value = setTimeout( pollQrStatus, QR_POLL_MS )
             }
             catch ( err ) {
                 console.warn( 'QR create error:', err.message )
@@ -270,7 +238,7 @@ const app = createApp( {
             }
 
             if ( gen !== qrGeneration.value ) return
-            qrPollTimer.value = setTimeout( pollQrStatus, 5000 )
+            qrPollTimer.value = setTimeout( pollQrStatus, QR_POLL_MS )
         }
 
         function refreshQr() {
@@ -286,12 +254,12 @@ const app = createApp( {
             provider_id.value = params.get( 'provider_id' ) || ''
             brand_color.value = ( params.get( 'brand_color' ) || 'neutral' ).replace( /[^a-z0-9-]/gi, '' )
 
+            const color = brand_color.value === 'neutral' ? 'gray' : brand_color.value
             const styleElement = document.createElement( 'style' )
             styleElement.textContent = `:root {
-                --wa-color-brand-20: var(--wa-color-${brand_color.value}-20);
-                --wa-color-brand-90: var(--wa-color-${brand_color.value}-90);
-                --wa-color-text-link: var(--wa-color-${brand_color.value}-50);
-                --wa-color-focus: var(--wa-color-${brand_color.value}-50);
+                --brand-dark: var(--${color}-10);
+                --brand-mid: var(--${color}-7);
+                --brand-light: var(--${color}-2);
             }`
             document.head.appendChild( styleElement )
 
@@ -335,8 +303,6 @@ const app = createApp( {
             mailsent,
             isValidEmail,
             pinInput,
-            myButton1,
-            myButton2,
             sendCode,
             verifyCode,
             sv,
