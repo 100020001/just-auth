@@ -304,7 +304,16 @@ async function sendVerificationEmail(
 
 const app = new Hono<{ Variables: AppVariables }>()
 
-// Serve static files from /app directory
+// Serve static files — hashed assets get long cache, HTML always revalidates
+app.use('/*', async (c, next) => {
+    await next()
+    const path = c.req.path
+    if (path.endsWith('.html') || path === '/') {
+        c.header('Cache-Control', 'no-cache')
+    } else if (path.match(/\.[a-f0-9]{8,}\./)) {
+        c.header('Cache-Control', 'public, max-age=31536000, immutable')
+    }
+})
 app.use('/*', serveStatic({ root: './dist' }))
 
 /**

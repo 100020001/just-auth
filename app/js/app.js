@@ -320,6 +320,9 @@ const app = createApp( {
                 clearTimeout( qrExpiryTimer.value )
                 clearTimeout( qrPollTimer.value )
             } )
+
+            // iOS: reset scroll position when virtual keyboard closes
+            if ( 'ontouchstart' in window ) document.addEventListener( 'focusout', () => window.scrollTo( 0, 0 ) )
         } )
 
         return {
@@ -346,4 +349,4 @@ const app = createApp( {
 
 } )
 
-app.mount( '#app' )
+window.__vue__ = app.mount( '#app' )
