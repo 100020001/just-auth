@@ -46,7 +46,7 @@ html {
 }
 @media screen and (orientation: portrait) {
   #app {
-    min-height: 90dvh;
+    min-height: 90svh;
   }
 }
 .card {
