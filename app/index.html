@@ -62,27 +62,27 @@
 
             <div class=card-columns>
 
-                <div class="wa-stack wa-gap-l" style="min-width: 320px;">
+                <form class="wa-stack wa-gap-l" style="min-width: 320px;" @submit.prevent="mailsent ? verifyCode() : sendCode()">
 
                     <div class="wa-stack wa-gap-xs" v-if="!mailsent">
                         <div class=wa-caption-m>{{ sv ? 'Min e-post' : 'My email' }}</div>
-                        <input v-model=email :placeholder="'john.doe@' + (settings.mailDomains?.[0] || 'company.com')" @keyup.enter="isValidEmail && $refs.myButton1.focus()" autofocus />
+                        <input v-model=email name=email autocomplete=email :placeholder="'john.doe@' + (settings.mailDomains?.[0] || 'company.com')" autofocus />
                         <div class=wa-caption-xs>{{ sv ? 'Använd din' : 'Use your' }} {{ settings.mailDomains?.map(d => '@' + d).join( sv ? ' eller ' : ' or ' ) }} {{ sv ? 'e-post' : 'email' }}</div>
                     </div>
                     <div class="wa-stack wa-gap-xs" v-else>
                         <div class=wa-caption-m>{{ sv ? 'Verifieringskod' : 'Verification Code' }}</div>
                         <div>
-                            <input v-model=pin placeholder="" type="text" autocomplete="one-time-code" inputmode="numeric" pattern="\d{6}" maxlength="6" style="font-family: var(--wa-font-family-code); text-align: center; letter-spacing: 1.5ch;" @keyup.enter="pin && $refs.myButton2.focus()" ref="pinInput" autofocus />
+                            <input v-model=pin placeholder="" type="text" autocomplete="one-time-code" inputmode="numeric" pattern="\d{6}" maxlength="6" style="font-family: var(--wa-font-family-code); text-align: center; letter-spacing: 1.5ch;" ref="pinInput" autofocus />
                         </div>
                     </div>
 
-                    <button class="wa-size-m wa-neutral" ref=myButton1 @click=sendCode :disabled="!isValidEmail" v-if="!mailsent">
+                    <button type=submit class="wa-size-m wa-neutral" :disabled="!isValidEmail" v-if="!mailsent">
                         {{ sv ? 'Fortsätt' : 'Continue' }}
                     </button>
-                    <button class="wa-size-m wa-neutral" ref=myButton2 @click=verifyCode :disabled="!pin.length" v-else>
+                    <button type=submit class="wa-size-m wa-neutral" :disabled="!pin.length" v-else>
                         {{ sv ? 'Verifiera' : 'Verify' }}
                     </button>
-                </div>
+                </form>
 
                 <div class="qr-section wa-stack wa-gap-xs" v-if="!isQrSession && !mailsent" style="text-align: center">
                     <div v-if="qrState === 'loading'" style="width: 160px; height: 160px; margin: 0 auto"></div>
