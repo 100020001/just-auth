@@ -43,68 +43,71 @@
                 {{ isQrSession ? ( sv ? 'Godkänn inloggning' : 'Authorize login' ) : ( sv ? 'Logga in' : 'Sign in' ) }}
             </h3>
 
-            <div class="wa-stack wa-gap-s">
-                <div v-if="isQrSession">
-                    {{ sv ? 'Ange din e-post för att godkänna inloggning på en annan enhet.' : 'Enter your email to authorize login on another device.' }}
+            <!-- QR scanned/authenticated: clean status view -->
+            <div v-if="qrState === 'scanned' || qrState === 'authenticated'" class="wa-stack wa-gap-l" style="text-align: center">
+                <div v-if="qrState === 'scanned'">
+                    {{ sv ? 'Väntar på inloggning...' : 'Waiting for login...' }}
                 </div>
-                <template v-else>
-                    <div>
-                        {{ sv ? 'Vi behöver verifiera ditt' : 'We need to verify your' }} <mark>{{ settings.friendlyName }}</mark> {{ sv ? 'konto.' : 'account.' }}
-                    </div>
-                    <div>
-                        {{ sv ? 'Ange din e-postadress för att få en verifieringskod.' : 'Enter your email address to receive a verification code.' }}
-                    </div>
-                </template>
+                <div v-else>
+                    {{ sv ? 'Omdirigerar...' : 'Redirecting...' }}
+                </div>
             </div>
 
-            <br>
-            <br>
-
-            <div class=card-columns>
-
-                <form class="wa-stack wa-gap-l" style="min-width: 320px;" @submit.prevent="mailsent ? verifyCode() : sendCode()">
-
-                    <div class="wa-stack wa-gap-xs" v-if="!mailsent">
-                        <div class=wa-caption-m>{{ sv ? 'Min e-post' : 'My email' }}</div>
-                        <input v-model=email name=email autocomplete=email :placeholder="'john.doe@' + (settings.mailDomains?.[0] || 'company.com')" autofocus />
-                        <div class=wa-caption-xs>{{ sv ? 'Använd din' : 'Use your' }} {{ settings.mailDomains?.map(d => '@' + d).join( sv ? ' eller ' : ' or ' ) }} {{ sv ? 'e-post' : 'email' }}</div>
+            <!-- Normal: form + QR -->
+            <template v-else>
+                <div class="wa-stack wa-gap-s">
+                    <div v-if="isQrSession">
+                        {{ sv ? 'Ange din e-post för att godkänna inloggning på en annan enhet.' : 'Enter your email to authorize login on another device.' }}
                     </div>
-                    <div class="wa-stack wa-gap-xs" v-else>
-                        <div class=wa-caption-m>{{ sv ? 'Verifieringskod' : 'Verification Code' }}</div>
+                    <template v-else>
                         <div>
-                            <input v-model=pin placeholder="" type="text" autocomplete="one-time-code" inputmode="numeric" pattern="\d{6}" maxlength="6" style="font-family: var(--wa-font-family-code); text-align: center; letter-spacing: 1.5ch;" ref="pinInput" autofocus />
+                            {{ sv ? 'Vi behöver verifiera ditt' : 'We need to verify your' }} <mark>{{ settings.friendlyName }}</mark> {{ sv ? 'konto.' : 'account.' }}
                         </div>
-                    </div>
-
-                    <button type=submit class="wa-size-m wa-neutral" :disabled="!isValidEmail" v-if="!mailsent">
-                        {{ sv ? 'Fortsätt' : 'Continue' }}
-                    </button>
-                    <button type=submit class="wa-size-m wa-neutral" :disabled="!pin.length" v-else>
-                        {{ sv ? 'Verifiera' : 'Verify' }}
-                    </button>
-                </form>
-
-                <div class="qr-section wa-stack wa-gap-xs" v-if="!isQrSession && !mailsent" style="text-align: center">
-                    <div v-if="qrState === 'loading'" style="width: 160px; height: 160px; margin: 0 auto"></div>
-                    <img v-if="qrState === 'ready'" :src=qrDataUrl alt="QR code for login" width=160 height=160 />
-                    <div v-if="qrState === 'scanned'" class="wa-stack wa-gap-s">
-                        <img :src=qrDataUrl class=faded width=160 height=160 alt="QR code scanned" />
-                        <div class=wa-caption-xs>{{ sv ? 'Väntar på inloggning...' : 'Waiting for login...' }}</div>
-                    </div>
-                    <div v-if="qrState === 'authenticated'" class="wa-stack wa-gap-s" style="margin: 0 auto">
-                        <svg xmlns="http://www.w3.org/2000/svg" width=48 height=48 viewBox="0 0 24 24" fill=none stroke="var(--wa-color-success-50, green)" stroke-width=2 stroke-linecap=round stroke-linejoin=round>
-                            <path d="M5 12l5 5l10 -10" />
-                        </svg>
-                        <div class=wa-caption-xs>{{ sv ? 'Omdirigerar...' : 'Redirecting...' }}</div>
-                    </div>
-                    <div v-if="qrState === 'expired'" class="wa-stack wa-gap-s">
-                        <div class=wa-caption-xs>{{ sv ? 'QR-koden har gått ut' : 'QR code expired' }}</div>
-                        <button class="wa-size-s wa-neutral" @click=refreshQr>{{ sv ? 'Uppdatera' : 'Refresh' }}</button>
-                    </div>
-                    <div class=wa-caption-xs v-if="qrState === 'ready'">{{ sv ? 'Logga in via annan enhet' : 'Login using other device' }}</div>
+                        <div>
+                            {{ sv ? 'Ange din e-postadress för att få en verifieringskod.' : 'Enter your email address to receive a verification code.' }}
+                        </div>
+                    </template>
                 </div>
 
-            </div>
+                <br>
+                <br>
+
+                <div class=card-columns>
+
+                    <form class="wa-stack wa-gap-l" style="min-width: 320px;" @submit.prevent="mailsent ? verifyCode() : sendCode()">
+
+                        <div class="wa-stack wa-gap-xs" v-if="!mailsent">
+                            <div class=wa-caption-m>{{ sv ? 'Min e-post' : 'My email' }}</div>
+                            <input v-model=email name=email autocomplete=email :placeholder="'john.doe@' + (settings.mailDomains?.[0] || 'company.com')" autofocus />
+                            <div class=wa-caption-xs>{{ sv ? 'Använd din' : 'Use your' }} {{ settings.mailDomains?.map(d => '@' + d).join( sv ? ' eller ' : ' or ' ) }} {{ sv ? 'e-post' : 'email' }}</div>
+                        </div>
+                        <div class="wa-stack wa-gap-xs" v-else>
+                            <div class=wa-caption-m>{{ sv ? 'Verifieringskod' : 'Verification Code' }}</div>
+                            <div>
+                                <input v-model=pin placeholder="" type="text" autocomplete="one-time-code" inputmode="numeric" pattern="\d{6}" maxlength="6" style="font-family: var(--wa-font-family-code); text-align: center; letter-spacing: 1.5ch;" ref="pinInput" autofocus />
+                            </div>
+                        </div>
+
+                        <button type=submit class="wa-size-m wa-neutral" :disabled="!isValidEmail" v-if="!mailsent">
+                            {{ sv ? 'Fortsätt' : 'Continue' }}
+                        </button>
+                        <button type=submit class="wa-size-m wa-neutral" :disabled="!pin.length" v-else>
+                            {{ sv ? 'Verifiera' : 'Verify' }}
+                        </button>
+                    </form>
+
+                    <div class="qr-section wa-stack wa-gap-xs" v-if="!isQrSession && !mailsent" style="text-align: center">
+                        <div v-if="qrState === 'loading'" style="width: 160px; height: 160px; margin: 0 auto"></div>
+                        <img v-if="qrState === 'ready'" :src=qrDataUrl alt="QR code for login" width=160 height=160 />
+                        <div v-if="qrState === 'expired'" class="wa-stack wa-gap-s">
+                            <div class=wa-caption-xs>{{ sv ? 'QR-koden har gått ut' : 'QR code expired' }}</div>
+                            <button class="wa-size-s wa-neutral" @click=refreshQr>{{ sv ? 'Uppdatera' : 'Refresh' }}</button>
+                        </div>
+                        <div class=wa-caption-xs v-if="qrState === 'ready'">{{ sv ? 'Logga in via annan enhet' : 'Login using other device' }}</div>
+                    </div>
+
+                </div>
+            </template>
 
         </div>
 
