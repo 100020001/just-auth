@@ -14,11 +14,11 @@
 
     <div id=app class="wa-stack wa-gap-3xl">
 
-        <!-- Mobile QR: choose driftställe -->
-        <div class="card wa-stack wa-gap-l" v-if="isQrSession && qrChoices" style="text-align: center">
-            <div class=wa-caption-m>{{ qrChoices.label }}</div>
+        <!-- Choose (driftställe etc.) -->
+        <div class="card wa-stack wa-gap-l" v-if="choices" style="text-align: center">
+            <div class=wa-caption-m>{{ choices.label }}</div>
             <div style="display: flex; gap: .75rem">
-                <button v-for="opt in qrChoices.options" :key="opt.value" class="wa-size-l wa-neutral" style="flex: 1" @click="submitChoice(opt.value)">{{ opt.label }}</button>
+                <button v-for="opt in choices.options" :key="opt.value" class="wa-size-l wa-neutral" style="flex: 1" @click="submitChoice(opt.value)">{{ opt.label }}</button>
             </div>
         </div>
 
@@ -32,7 +32,7 @@
         </div>
 
         <!-- Main login card -->
-        <div class=card v-if="!qrMobileComplete">
+        <div class=card v-if="!qrMobileComplete && !choices">
 
             <svg xmlns="http://www.w3.org/2000/svg" width=32 height=32 viewBox="0 0 24 24" fill=none stroke=currentColor stroke-width=2 stroke-linecap=round stroke-linejoin=round>
                 <path d="M16.555 3.843l3.602 3.602a2.877 2.877 0 0 1 0 4.069l-2.643 2.643a2.877 2.877 0 0 1 -4.069 0l-.301 -.301l-6.558 6.558a2 2 0 0 1 -1.239 .578l-.175 .008h-1.172a1 1 0 0 1 -.993 -.883l-.007 -.117v-1.172a2 2 0 0 1 .467 -1.284l.119 -.13l.414 -.414h2v-2h2v-2l2.144 -2.144l-.301 -.301a2.877 2.877 0 0 1 0 -4.069l2.643 -2.643a2.877 2.877 0 0 1 4.069 0z" />

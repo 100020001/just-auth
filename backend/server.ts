@@ -477,10 +477,12 @@ app.post('/verify-pin', loadProviderConfig, async (c: AppContext) => {
         return c.json({ success: { qr_completed: true } })
     }
 
+    const { secret: _, ...publicConfig } = config
     return c.json({
         success: {
             token: session.token,
-            redirect: session.redirectUrl
+            redirect: session.redirectUrl,
+            ...((publicConfig as any).choices && { choose: (publicConfig as any).choices })
         }
     })
 })

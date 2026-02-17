@@ -62,7 +62,8 @@ const app = createApp( {
             }, 4800 )
         }
 
-        const qrChoices = ref( null )
+        const choices = ref( null )
+        const pendingRedirect = ref( null )
 
         function redirectWithToken( url, token ) {
             try {
@@ -75,17 +76,20 @@ const app = createApp( {
         }
 
         async function submitChoice( value ) {
-            try {
+            const param = choices.value.param
+            choices.value = null
+            if ( isQrSession.value ) {
                 const res = await fetch( `/qr/choose/${qrSessionId.value}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify( { param: qrChoices.value.param, value } )
-                } )
-                if ( res.ok ) {
-                    qrChoices.value = null
-                    qrMobileComplete.value = true
-                }
-            } catch {}
+                    body: JSON.stringify( { param, value } )
+                } ).catch( () => null )
+                if ( res?.ok ) qrMobileComplete.value = true
+            } else {
+                const url = new URL( pendingRedirect.value.redirect )
+                url.searchParams.set( param, value )
+                redirectWithToken( url.toString(), pendingRedirect.value.token )
+            }
         }
 
         // Watch
@@ -153,7 +157,8 @@ const app = createApp( {
                 {
                     if ( data.success?.choose )
                     {
-                        qrChoices.value = data.success.choose
+                        choices.value = data.success.choose
+                        if ( data.success.token ) pendingRedirect.value = { token: data.success.token, redirect: data.success.redirect }
                     }
                     else if ( data.success?.qr_completed )
                     {
@@ -307,7 +312,7 @@ const app = createApp( {
                 qrSessionId.value = qrSessionParam
                 fetch( `/qr/scanned/${qrSessionParam}`, { method: 'POST' } ).catch( () => {} )
             }
-            else if ( redirect.value && provider_id.value ) {
+            else if ( redirect.value && provider_id.value && window.innerWidth > 600 ) {
                 createQrSession()
             }
 
@@ -333,7 +338,7 @@ const app = createApp( {
             qrDataUrl,
             isQrSession,
             qrMobileComplete,
-            qrChoices,
+            choices,
             refreshQr,
             submitChoice,
         }

@@ -97,6 +97,11 @@ input {
 .qr-section {
   align-items: center;
 }
+@media screen and (max-width: 600px) {
+  .qr-section {
+    display: none;
+  }
+}
 .qr-section img.faded {
   opacity: 0.3;
 }
