@@ -283,8 +283,12 @@ async function sendVerificationEmail(
     const result = await resend.emails.send({
         from: fromAddress,
         to: toEmail,
-        subject: sv ? 'Din verifieringskod' : 'Your Verification Code',
-        html: sv ? `Din verifieringskod är<br><h1>${pin}</h1>` : `Your verification code is<br><h1>${pin}</h1>`
+        subject: sv ? `${pin} — Din verifieringskod` : `${pin} — Your Verification Code`,
+        html: `<div style="font-family:-apple-system,system-ui,sans-serif;max-width:400px;margin:0 auto;padding:40px 20px;text-align:center">
+            <p style="color:#666;font-size:15px;margin:0 0 24px">${sv ? 'Din verifieringskod är' : 'Your verification code is'}</p>
+            <p style="font-size:36px;font-weight:700;letter-spacing:8px;margin:0;padding:16px 0">${pin}</p>
+            <p style="color:#999;font-size:13px;margin:24px 0 0">${sv ? 'Koden är giltig i 10 minuter.' : 'This code expires in 10 minutes.'}</p>
+        </div>`
     })
 
     if (result.error) {
