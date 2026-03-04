@@ -4,7 +4,7 @@
     "main": "backend/server.ts",
     "scripts": {
         "build": "vite build",
-        "start": "vite build && bun run backend/server.ts",
+        "start": "NODE_ENV=production bun run backend/server.ts",
         "dev": "bun --watch run backend/server.ts & vite"
     },
     "dependencies": {
