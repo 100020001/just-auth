@@ -54,7 +54,8 @@ const app = createApp( {
         const isValidEmail = computed( () => {
             if ( !email.value || !validDomains.value.length ) return false
             const parts = email.value.split( '@' )
-            return parts.length === 2 && parts[ 0 ].length > 0 && validDomains.value.includes( parts[ 1 ] )
+            if ( parts.length !== 2 || !parts[ 0 ].length || !parts[ 1 ].length ) return false
+            return validDomains.value.includes( '*' ) || validDomains.value.includes( parts[ 1 ] )
         } )
 
         const user = computed( () => email.value.split( '@' )[ 0 ] || '' )

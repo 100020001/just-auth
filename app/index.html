@@ -79,8 +79,9 @@
 
                         <div class="stack gap-xs" v-if="!mailsent">
                             <div class=caption>{{ sv ? 'Min e-post' : 'My email' }}</div>
-                            <input v-model=email name=email autocomplete=email :placeholder="'john.doe@' + (settings.mailDomains?.[0] || 'company.com')" autofocus />
-                            <div class=small>{{ sv ? 'Använd din' : 'Use your' }} {{ settings.mailDomains?.map(d => '@' + d).join( sv ? ' eller ' : ' or ' ) }} {{ sv ? 'e-post' : 'email' }}</div>
+                            <input v-model=email name=email autocomplete=email :placeholder="settings.mailDomains?.includes('*') ? 'john.doe@example.com' : 'john.doe@' + (settings.mailDomains?.[0] || 'company.com')" autofocus />
+                            <div class=small v-if="settings.mailDomains?.includes('*')">{{ sv ? 'Ange din e-postadress' : 'Enter your email address' }}</div>
+                            <div class=small v-else>{{ sv ? 'Använd din' : 'Use your' }} {{ settings.mailDomains?.map(d => '@' + d).join( sv ? ' eller ' : ' or ' ) }} {{ sv ? 'e-post' : 'email' }}</div>
                         </div>
                         <div class="stack gap-xs" v-else>
                             <div class=caption>{{ sv ? 'Verifieringskod' : 'Verification Code' }}</div>

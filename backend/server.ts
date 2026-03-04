@@ -155,6 +155,17 @@ function sanitizeUsername(input: string): string {
 }
 
 /**
+ * Sanitizes email domain: lowercase, trim, strip control characters.
+ * Rejects domains with @, spaces, or other invalid characters.
+ */
+function sanitizeDomain(domain: string): string | null {
+    const cleaned = domain.trim().toLowerCase().replace(/[\r\n\t\x00]/g, '')
+    if (!cleaned || /[\s@]/.test(cleaned)) return null
+    if (!/^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/.test(cleaned)) return null
+    return cleaned
+}
+
+/**
  * Builds a full email address from sanitized username and domain.
  */
 function buildEmail(username: string, domain: string): string {
@@ -205,14 +216,29 @@ async function parseJsonBody<T>(c: AppContext): Promise<T | null> {
 /**
  * Validates common auth fields from request body: user, domain, language.
  * Returns built email + sv flag, or an error string.
+ *
+ * Domain enforcement:
+ * - If config.mailDomains contains "*", any valid domain is accepted (e.g. mygishop)
+ * - Otherwise, only exact domain matches are allowed (e.g. kihlstroms with ["kihlstroms.se"])
+ * - A user sending provider_domain:"*" is NOT a bypass — it fails the includes() check
+ *   against restricted configs because "*" is not in ["kihlstroms.se"]
+ * - Domain is sanitized to prevent injection (newlines, @, special chars stripped)
+ * - Cross-provider isolation is guaranteed by provider-specific JWT secrets
  */
 function validateAuth(body: Record<string, unknown>, config: ProviderConfig):
     { email: string; sv: boolean } | { error: string } {
     const user = body.user as string
-    const domain = body.provider_domain as string
+    const rawDomain = body.provider_domain as string
     const sv = (body.lang as string) === 'sv'
-    if (!user || !domain) return { error: sv ? 'Obligatoriska fält saknas' : 'Missing required fields' }
-    if (!config.mailDomains.includes(domain)) return { error: sv ? 'Ogiltig e-postdomän' : 'Invalid email domain' }
+    if (!user || !rawDomain) return { error: sv ? 'Obligatoriska fält saknas' : 'Missing required fields' }
+
+    const domain = sanitizeDomain(rawDomain)
+    if (!domain) return { error: sv ? 'Ogiltig e-postdomän' : 'Invalid email domain' }
+
+    if (!config.mailDomains.includes('*') && !config.mailDomains.includes(domain)) {
+        return { error: sv ? 'Ogiltig e-postdomän' : 'Invalid email domain' }
+    }
+
     return { email: buildEmail(user, domain), sv }
 }
 
@@ -354,8 +380,9 @@ app.post('/login', loadProviderConfig, async (c: AppContext) => {
     }
     const token = await sign(tokenPayload, config.secret)
 
-    // Store pending session
-    pendingAuthSessions.set(email, {
+    // Store pending session (keyed by provider:email to prevent cross-provider collision)
+    const providerId = body.provider_id as string
+    pendingAuthSessions.set(`${providerId}:${email}`, {
         token,
         pin,
         redirectUrl,
@@ -390,14 +417,16 @@ app.post('/verify-pin', loadProviderConfig, async (c: AppContext) => {
     if (!pin) return c.json({ error: sv ? 'Obligatoriska fält saknas' : 'Missing required fields' }, 400)
 
     // Check rate limit - invalidate session if exceeded
+    const providerId = body.provider_id as string
+    const sessionKey = `${providerId}:${email}`
     const { maxAttempts, windowMs } = RATE_LIMITS.PIN_VERIFY
     if (!isRateLimitAllowed(pinVerifyRateLimits, email, maxAttempts, windowMs)) {
-        pendingAuthSessions.delete(email)
+        pendingAuthSessions.delete(sessionKey)
         return c.json({ error: sv ? 'För många försök. Begär en ny kod.' : 'Too many attempts. Please request a new code.' }, 429)
     }
 
-    // Look up pending session
-    const session = pendingAuthSessions.get(email)
+    // Look up pending session (keyed by provider:email)
+    const session = pendingAuthSessions.get(sessionKey)
 
     if (!session) {
         return c.json({ error: sv ? 'Ingen väntande inloggning hittades. Börja om.' : 'No pending login found. Please start again.' }, 400)
@@ -405,7 +434,7 @@ app.post('/verify-pin', loadProviderConfig, async (c: AppContext) => {
 
     // Check if PIN has expired
     if (session.expiresAt < Date.now()) {
-        pendingAuthSessions.delete(email)
+        pendingAuthSessions.delete(sessionKey)
         return c.json({ error: sv ? 'Koden har gått ut. Begär en ny.' : 'Code expired. Please request a new one.' }, 400)
     }
 
@@ -418,7 +447,7 @@ app.post('/verify-pin', loadProviderConfig, async (c: AppContext) => {
     try {
         await verify(session.token, config.secret, 'HS256')
     } catch {
-        pendingAuthSessions.delete(email)
+        pendingAuthSessions.delete(sessionKey)
         return c.json({ error: sv ? 'Sessionen har gått ut. Börja om.' : 'Session expired. Please start again.' }, 400)
     }
 
@@ -438,7 +467,7 @@ app.post('/verify-pin', loadProviderConfig, async (c: AppContext) => {
     }
 
     // Success - cleanup and return token
-    pendingAuthSessions.delete(email)
+    pendingAuthSessions.delete(sessionKey)
     pinVerifyRateLimits.delete(email)
 
     if (qrSession) {
