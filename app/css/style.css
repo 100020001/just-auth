@@ -1,18 +1,16 @@
+@import '@fontsource-variable/inter';
+
 /* Reset */
 *, *::before, *::after { box-sizing: border-box; }
 body { margin: 0; }
 
 html {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter Variable', sans-serif;
   -webkit-font-smoothing: antialiased;
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   letter-spacing: -0.011em;
   color: var(--gray-9);
   line-height: var(--font-lineheight-3);
-
-  @supports (font-variation-settings: normal) {
-    font-family: 'Inter var', sans-serif;
-  }
   @media (orientation: landscape) {
     background: var(--gray-1);
   }
