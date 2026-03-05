@@ -83,13 +83,14 @@ button {
   opacity: 0;
   animation: appIn .4s var(--ease-3) forwards;
 
-  & > * { max-width: 100dvw; }
   & > :first-child { margin-top: auto; }
   & > :last-child { margin-top: auto; }
 }
 
 /* Card */
 .card {
+  padding: var(--size-5);
+
   @media (orientation: landscape) {
     background: var(--gray-0);
     border-radius: var(--radius-3);
