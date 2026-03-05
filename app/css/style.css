@@ -116,6 +116,8 @@ button {
   justify-content: center;
   text-align: center;
   gap: var(--size-3);
+  width: 174px;
+  flex-shrink: 0;
 
   @media (orientation: landscape) {
     display: flex;
