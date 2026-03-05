@@ -116,7 +116,6 @@ button {
   justify-content: center;
   text-align: center;
   gap: var(--size-3);
-  width: 174px;
   flex-shrink: 0;
 
   @media (orientation: landscape) {
@@ -129,6 +128,7 @@ button {
 .qr-image-wrap {
   position: relative;
   cursor: default;
+  width: 174px;
 
   &.expired {
     cursor: pointer;
