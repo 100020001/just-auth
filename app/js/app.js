@@ -182,8 +182,8 @@ const app = createApp( {
 
                 qrDataUrl.value = await QRCode.toDataURL( qrUrl.toString(), {
                     width: 160,
-                    margin: 2,
-                    color: { dark: '#000000', light: '#ffffff' }
+                    margin: 0,
+                    color: { dark: '#000000', light: '#00000000' }
                 } )
 
                 qrState.value = 'ready'
