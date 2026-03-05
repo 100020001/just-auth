@@ -177,7 +177,6 @@ const app = createApp( {
                 const qrUrl = new URL( window.location.origin )
                 qrUrl.searchParams.set( 'provider_id', provider_id.value )
                 qrUrl.searchParams.set( 'redirect', redirect.value )
-                qrUrl.searchParams.set( 'brand_color', brand_color.value )
                 qrUrl.searchParams.set( 'qr_session', data.session_id )
 
                 qrDataUrl.value = await QRCode.toDataURL( qrUrl.toString(), {
@@ -253,8 +252,21 @@ const app = createApp( {
             const params = new URLSearchParams( window.location.search )
             redirect.value = params.get( 'redirect' ) || ''
             provider_id.value = params.get( 'provider_id' ) || ''
-            brand_color.value = params.get( 'brand_color' ) || 'neutral'
 
+            try {
+                const res = await fetch( '/settings' + ( provider_id.value ? `/${provider_id.value}` : '' ) )
+                settings.value = await res.json()
+            } catch {
+                document.body.textContent = sv ? 'Kunde inte ladda inställningar. Uppdatera sidan.' : 'Failed to load settings. Please refresh.'
+                return
+            }
+
+            if ( settings.value.error ) {
+                document.body.textContent = settings.value.error
+                return
+            }
+
+            brand_color.value = settings.value.brandColor || 'neutral'
             const styleElement = document.createElement( 'style' )
 
             if ( brand_color.value.includes( ',' ) ) {
@@ -273,19 +285,6 @@ const app = createApp( {
                 }`
             }
             document.head.appendChild( styleElement )
-
-            try {
-                const res = await fetch( '/settings' + ( provider_id.value ? `/${provider_id.value}` : '' ) )
-                settings.value = await res.json()
-            } catch {
-                document.body.textContent = sv ? 'Kunde inte ladda inställningar. Uppdatera sidan.' : 'Failed to load settings. Please refresh.'
-                return
-            }
-
-            if ( settings.value.error ) {
-                document.body.textContent = settings.value.error
-                return
-            }
 
             // QR session detection
             const qrSessionParam = params.get( 'qr_session' )

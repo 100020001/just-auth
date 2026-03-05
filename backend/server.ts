@@ -24,6 +24,7 @@ interface ProviderConfig {
     mailDomains: string[]
     sendAddress: string
     redirectDomains?: string[]
+    brandColor?: string
 }
 
 /** QR login session stored while awaiting mobile authentication */
