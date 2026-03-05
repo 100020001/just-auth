@@ -66,9 +66,6 @@
                     </template>
                 </div>
 
-                <br>
-                <br>
-
                 <form class="stack gap-l" @submit.prevent="mailsent ? verifyCode() : sendCode()">
 
                     <div class="stack gap-xs" v-if="!mailsent">

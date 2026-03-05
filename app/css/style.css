@@ -18,6 +18,7 @@ html {
 
 h3 {
     font-weight: var(--font-weight-6);
+    margin: var(--size-5) 0;
 }
 
 a { color: var(--brand-mid, var(--gray-7)); }
@@ -69,7 +70,7 @@ button {
 .gap-2xs { gap: var(--size-1); }
 
 /* Typography */
-.caption { color: var(--gray-6); }
+.caption { color: var(--gray-6); margin-top: var(--size-5); }
 .small { font-size: var(--font-size-0); color: var(--gray-6); & a { color: inherit; } }
 
 /* App */
