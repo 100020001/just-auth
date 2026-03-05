@@ -16,18 +16,22 @@ html {
   }
 }
 
+h3 {
+    font-weight: var(--font-weight-6);
+}
+
 a { color: var(--brand-mid, var(--gray-7)); }
 
 mark {
-  color: var(--brand-dark, var(--gray-10));
-  background: var(--brand-light, var(--gray-2));
+  color: var(--brand-light, var(--gray-10));
+  background: var(--brand-dark, var(--gray-2));
   white-space: nowrap;
   padding: .1em .3em;
   border-radius: var(--radius-2);
 }
 
 input {
-  width: 100%;
+  min-width: 20ch;
   padding: var(--size-2) var(--size-3);
   border: var(--border-size-1) solid var(--gray-3);
   border-radius: var(--radius-2);
@@ -46,13 +50,13 @@ button {
   padding: var(--size-2) var(--size-4);
   border: none;
   border-radius: var(--radius-2);
-  background: var(--gray-9);
-  color: var(--gray-0);
+  background: var(--brand-light, var(--gray-9));
+  color: var(--brand-dark, var(--gray-0));
   font: inherit;
   cursor: pointer;
 
-  &:hover { background: var(--gray-8); }
-  &:disabled { opacity: .5; cursor: not-allowed; }
+  &:hover { opacity: .85; }
+  &:disabled { cursor: not-allowed; }
 }
 
 /* Layout */
@@ -65,27 +69,25 @@ button {
 
 /* Typography */
 .caption { color: var(--gray-6); }
-.small { font-size: var(--font-size-0); color: var(--gray-6); }
+.small { font-size: var(--font-size-0); color: var(--gray-6); & a { color: inherit; } }
 
 /* App */
 #app {
-  display: grid;
-  grid-template-rows: 1fr auto;
-  justify-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: var(--size-8);
   min-height: 100dvh;
   padding: var(--size-7);
   opacity: 0;
   animation: appIn .4s var(--ease-3) forwards;
 
-  & > :first-child { align-self: center; }
+  & > :first-child { margin-top: auto; }
+  & > :last-child { margin-top: auto; }
 }
 
 /* Card */
 .card {
-  max-width: var(--size-md);
-  width: 100%;
-
   @media (orientation: landscape) {
     background: var(--gray-0);
     border-radius: var(--radius-3);

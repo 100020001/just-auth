@@ -253,15 +253,25 @@ const app = createApp( {
             const params = new URLSearchParams( window.location.search )
             redirect.value = params.get( 'redirect' ) || ''
             provider_id.value = params.get( 'provider_id' ) || ''
-            brand_color.value = ( params.get( 'brand_color' ) || 'neutral' ).replace( /[^a-z0-9-]/gi, '' )
+            brand_color.value = params.get( 'brand_color' ) || 'neutral'
 
-            const color = brand_color.value === 'neutral' ? 'gray' : brand_color.value
             const styleElement = document.createElement( 'style' )
-            styleElement.textContent = `:root {
-                --brand-dark: var(--${color}-10);
-                --brand-mid: var(--${color}-7);
-                --brand-light: var(--${color}-2);
-            }`
+
+            if ( brand_color.value.includes( ',' ) ) {
+                const [ bg, text ] = brand_color.value.split( ',' ).map( c => c.startsWith('#') ? c : `#${c}` )
+                styleElement.textContent = `:root {
+                    --brand-light: ${bg};
+                    --brand-mid: ${bg};
+                    --brand-dark: ${text || bg};
+                }`
+            } else {
+                const color = brand_color.value === 'neutral' ? 'gray' : brand_color.value
+                styleElement.textContent = `:root {
+                    --brand-dark: var(--${color}-0);
+                    --brand-mid: var(--${color}-0);
+                    --brand-light: var(--${color}-8);
+                }`
+            }
             document.head.appendChild( styleElement )
 
             try {
