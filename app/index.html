@@ -27,83 +27,92 @@
             <div>{{ sv ? 'Du kan nu stänga den här sidan.' : 'You can now close this page.' }}</div>
         </div>
 
-        <!-- Main login card -->
-        <div :class="{ card: qrState !== 'scanned' && qrState !== 'authenticated' }" class="stack" v-if="!qrMobileComplete && !choices">
+        <!-- Main login area -->
+        <div :class="{ card: qrState !== 'scanned' && qrState !== 'authenticated' }" class="login-layout" v-if="!qrMobileComplete && !choices">
 
-            <svg v-if="qrState !== 'scanned' && qrState !== 'authenticated'" xmlns="http://www.w3.org/2000/svg" width=32 height=32 viewBox="0 0 24 24" fill=none stroke=currentColor stroke-width=2 stroke-linecap=round stroke-linejoin=round>
-                <path d="M16.555 3.843l3.602 3.602a2.877 2.877 0 0 1 0 4.069l-2.643 2.643a2.877 2.877 0 0 1 -4.069 0l-.301 -.301l-6.558 6.558a2 2 0 0 1 -1.239 .578l-.175 .008h-1.172a1 1 0 0 1 -.993 -.883l-.007 -.117v-1.172a2 2 0 0 1 .467 -1.284l.119 -.13l.414 -.414h2v-2h2v-2l2.144 -2.144l-.301 -.301a2.877 2.877 0 0 1 0 -4.069l2.643 -2.643a2.877 2.877 0 0 1 4.069 0z" />
-                <path d="M15 9h.01" />
-            </svg>
+            <!-- Login form column -->
+            <div class="stack">
 
-            <h3>
-                {{ isQrSession ? ( sv ? 'Godkänn inloggning för' : 'Authorize login for' ) : ( sv ? 'Logga in på' : 'Sign in to' ) }}
-                <mark v-if="settings.friendlyName">{{ settings.friendlyName }}</mark>
-            </h3>
+                <svg v-if="qrState !== 'scanned' && qrState !== 'authenticated'" xmlns="http://www.w3.org/2000/svg" width=32 height=32 viewBox="0 0 24 24" fill=none stroke=currentColor stroke-width=2 stroke-linecap=round stroke-linejoin=round>
+                    <path d="M16.555 3.843l3.602 3.602a2.877 2.877 0 0 1 0 4.069l-2.643 2.643a2.877 2.877 0 0 1 -4.069 0l-.301 -.301l-6.558 6.558a2 2 0 0 1 -1.239 .578l-.175 .008h-1.172a1 1 0 0 1 -.993 -.883l-.007 -.117v-1.172a2 2 0 0 1 .467 -1.284l.119 -.13l.414 -.414h2v-2h2v-2l2.144 -2.144l-.301 -.301a2.877 2.877 0 0 1 0 -4.069l2.643 -2.643a2.877 2.877 0 0 1 4.069 0z" />
+                    <path d="M15 9h.01" />
+                </svg>
 
-            <!-- QR scanned/authenticated: clean status view -->
-            <div v-if="qrState === 'scanned' || qrState === 'authenticated'" class="stack gap-l">
-                <div v-if="qrState === 'scanned'">
-                    {{ sv ? 'Väntar på inloggning...' : 'Waiting for login...' }}
+                <h3>
+                    {{ isQrSession ? ( sv ? 'Godkänn inloggning för' : 'Authorize login for' ) : ( sv ? 'Logga in på' : 'Sign in to' ) }}
+                    <mark v-if="settings.friendlyName">{{ settings.friendlyName }}</mark>
+                </h3>
+
+                <!-- QR scanned/authenticated: clean status view -->
+                <div v-if="qrState === 'scanned' || qrState === 'authenticated'" class="stack gap-l">
+                    <div v-if="qrState === 'scanned'">
+                        {{ sv ? 'Väntar på inloggning...' : 'Waiting for login...' }}
+                    </div>
+                    <div v-else>
+                        {{ sv ? 'Omdirigerar...' : 'Redirecting...' }}
+                    </div>
                 </div>
-                <div v-else>
-                    {{ sv ? 'Omdirigerar...' : 'Redirecting...' }}
-                </div>
+
+                <!-- Normal: form -->
+                <template v-else>
+                    <div class="stack">
+                        <div v-if="isQrSession">
+                            {{ sv ? 'Ange din e-post för att godkänna inloggning på en annan enhet.' : 'Enter your email to authorize login on another device.' }}
+                        </div>
+                        <template v-else>
+                            <div>
+                                {{ sv ? 'Vi behöver verifiera ditt konto.' : 'We need to verify your account.' }}
+                            </div>
+                            <div>
+                                {{ sv ? 'Ange din e-postadress för att få en verifieringskod.' : 'Enter your email address to receive a verification code.' }}
+                            </div>
+                        </template>
+                    </div>
+
+                    <form class="stack gap-l" @submit.prevent="mailsent ? verifyCode() : sendCode()">
+
+                        <div class="stack gap-xs" v-if="!mailsent">
+                            <div class=caption>{{ sv ? 'Min e-post' : 'My email' }}</div>
+                            <input v-model=email name=email autocomplete=email :placeholder="settings.mailDomains?.includes('*') ? 'john.doe@example.com' : 'john.doe@' + (settings.mailDomains?.[0] || 'company.com')" autofocus />
+                            <div class=small v-if="settings.mailDomains?.includes('*')">{{ sv ? 'Ange din e-postadress' : 'Enter your email address' }}</div>
+                            <div class=small v-else>{{ sv ? 'Använd din' : 'Use your' }} {{ settings.mailDomains?.map(d => '@' + d).join( sv ? ' eller ' : ' or ' ) }} {{ sv ? 'e-post' : 'email' }}</div>
+                        </div>
+                        <div class="stack gap-xs" v-else>
+                            <div class=caption>{{ sv ? 'Verifieringskod' : 'Verification Code' }}</div>
+                            <div>
+                                <input v-model=pin placeholder="" type="text" autocomplete="one-time-code" inputmode="numeric" pattern="\d{6}" maxlength="6" style="font-family: var(--font-mono); text-align: center; letter-spacing: 1.5ch; min-width: 0; width: 100%;" ref="pinInput" autofocus />
+                            </div>
+                        </div>
+
+                        <button type=submit :disabled="!isValidEmail" v-if="!mailsent">
+                            {{ sv ? 'Fortsätt' : 'Continue' }}
+                        </button>
+                        <button type=submit :disabled="!pin.length" v-else>
+                            {{ sv ? 'Verifiera' : 'Verify' }}
+                        </button>
+                    </form>
+                </template>
+
             </div>
 
-            <!-- Normal: form -->
-            <template v-else>
-                <div class="stack">
-                    <div v-if="isQrSession">
-                        {{ sv ? 'Ange din e-post för att godkänna inloggning på en annan enhet.' : 'Enter your email to authorize login on another device.' }}
-                    </div>
-                    <template v-else>
-                        <div>
-                            {{ sv ? 'Vi behöver verifiera ditt konto.' : 'We need to verify your account.' }}
-                        </div>
-                        <div>
-                            {{ sv ? 'Ange din e-postadress för att få en verifieringskod.' : 'Enter your email address to receive a verification code.' }}
-                        </div>
-                    </template>
+            <!-- QR code column (desktop only) -->
+            <div class="qr-column stack" v-if="!isQrSession && !mailsent">
+                <div v-if="qrState === 'ready' || qrState === 'expired'" class="qr-image-wrap" :class="{ expired: qrState === 'expired' }" @click="qrState === 'expired' && refreshQr()">
+                    <img :src=qrDataUrl alt="QR code for login" width=100% height=100% />
+                    <button v-if="qrState === 'expired'" class="qr-refresh" aria-label="Refresh QR">
+                        <svg xmlns="http://www.w3.org/2000/svg" width=28 height=28 viewBox="0 0 24 24" fill=none stroke=currentColor stroke-width=2 stroke-linecap=round stroke-linejoin=round>
+                            <path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4" />
+                            <path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4" />
+                        </svg>
+                    </button>
                 </div>
-
-                <form class="stack gap-l" @submit.prevent="mailsent ? verifyCode() : sendCode()">
-
-                    <div class="stack gap-xs" v-if="!mailsent">
-                        <div class=caption>{{ sv ? 'Min e-post' : 'My email' }}</div>
-                        <input v-model=email name=email autocomplete=email :placeholder="settings.mailDomains?.includes('*') ? 'john.doe@example.com' : 'john.doe@' + (settings.mailDomains?.[0] || 'company.com')" autofocus />
-                        <div class=small v-if="settings.mailDomains?.includes('*')">{{ sv ? 'Ange din e-postadress' : 'Enter your email address' }}</div>
-                        <div class=small v-else>{{ sv ? 'Använd din' : 'Use your' }} {{ settings.mailDomains?.map(d => '@' + d).join( sv ? ' eller ' : ' or ' ) }} {{ sv ? 'e-post' : 'email' }}</div>
-                    </div>
-                    <div class="stack gap-xs" v-else>
-                        <div class=caption>{{ sv ? 'Verifieringskod' : 'Verification Code' }}</div>
-                        <div>
-                            <input v-model=pin placeholder="" type="text" autocomplete="one-time-code" inputmode="numeric" pattern="\d{6}" maxlength="6" style="font-family: var(--font-mono); text-align: center; letter-spacing: 1.5ch; min-width: 0; width: 100%;" ref="pinInput" autofocus />
-                        </div>
-                    </div>
-
-                    <button type=submit :disabled="!isValidEmail" v-if="!mailsent">
-                        {{ sv ? 'Fortsätt' : 'Continue' }}
-                    </button>
-                    <button type=submit :disabled="!pin.length" v-else>
-                        {{ sv ? 'Verifiera' : 'Verify' }}
-                    </button>
-                </form>
-            </template>
+                <div v-if="qrState === 'ready'">{{ sv ? 'Logga in med mobilen' : 'Log in with your phone' }}</div>
+                <div v-if="qrState === 'expired'">{{ sv ? 'Klicka för att uppdatera' : 'Click to refresh' }}</div>
+            </div>
 
         </div>
 
-        <!-- QR login -->
-        <div class="qr-section stack gap-xs" v-if="!isQrSession && !mailsent && !qrMobileComplete && !choices" style="text-align: center">
-            <div v-if="qrState === 'loading'" style="width: 160px; height: 160px; margin: 0 auto"></div>
-            <img v-if="qrState === 'ready'" :src=qrDataUrl alt="QR code for login" width=160 height=160 />
-            <div v-if="qrState === 'expired'" class="stack gap-s">
-                <div class=small>{{ sv ? 'QR-koden har gått ut' : 'QR code expired' }}</div>
-                <button @click=refreshQr>{{ sv ? 'Uppdatera' : 'Refresh' }}</button>
-            </div>
-            <div class=small v-if="qrState === 'ready'">{{ sv ? 'Logga in via annan enhet' : 'Login using other device' }}</div>
-        </div>
-
-        <div class="stack gap-2xs small">
+        <div class="stack small">
             <div>
                 {{ settings.friendlyName }} {{ sv ? 'använder JustAuth. Enkelt. Privat. Ditt.' : 'uses JustAuth. Effortless. Private. Yours.' }}
             </div>

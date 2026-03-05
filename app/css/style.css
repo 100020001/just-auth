@@ -18,7 +18,7 @@ html {
 
 h3 {
     font-weight: var(--font-weight-6);
-    margin: var(--size-5) 0;
+    margin: var(--size-3) 0;
 }
 
 a { color: var(--brand-mid, var(--gray-7)); }
@@ -63,11 +63,9 @@ button {
 
 /* Layout */
 .stack { display: flex; flex-direction: column; }
-.gap-3xl { gap: var(--size-8); }
 .gap-l { gap: var(--size-5); }
 .gap-s { gap: var(--size-3); }
 .gap-xs { gap: var(--size-2); }
-.gap-2xs { gap: var(--size-1); }
 
 /* Typography */
 .caption { color: var(--gray-6); margin-top: var(--size-5); }
@@ -100,20 +98,50 @@ button {
   }
 }
 
-.card-columns {
+/* Login layout: side-by-side on desktop */
+.login-layout {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--size-8);
-  align-items: flex-start;
+  flex-direction: column;
 
-  & > :first-child { flex: 1; min-width: 200px; }
+  @media (orientation: landscape) {
+    flex-direction: row;
+    gap: var(--size-8);
+  }
 }
 
-/* QR */
-.qr-section {
+/* QR column */
+.qr-column {
+  display: none;
   align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: var(--size-3);
 
-  @media (max-width: 600px) { display: none; }
+  @media (orientation: landscape) {
+    display: flex;
+    border-left: var(--border-size-1) solid var(--gray-2);
+    padding-left: var(--size-8);
+  }
+}
+
+.qr-image-wrap {
+  position: relative;
+  cursor: default;
+
+  &.expired {
+    cursor: pointer;
+    & img { opacity: .15; }
+  }
+}
+
+.qr-refresh {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-round);
+  padding: 0;
 }
 
 /* Toast */

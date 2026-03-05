@@ -6,6 +6,7 @@ import QRCode from 'qrcode'
 // Lightweight i18n - true if Swedish
 const sv = navigator.language?.startsWith( 'sv' )
 const QR_POLL_MS = 5000
+const FORCE_STATE = false // set to 'expired' | 'ready' | 'scanned' | 'authenticated' to debug
 
 document.title = sv ? 'Verifiera din e-post' : 'Verify Your Email'
 
@@ -154,7 +155,7 @@ const app = createApp( {
 
         // QR Methods
         async function createQrSession() {
-            qrState.value = 'loading'
+            if ( !qrDataUrl.value ) qrState.value = 'loading'
             const gen = ++qrGeneration.value
             try {
                 const res = await fetch( '/qr/create', {
@@ -180,7 +181,7 @@ const app = createApp( {
                 qrUrl.searchParams.set( 'qr_session', data.session_id )
 
                 qrDataUrl.value = await QRCode.toDataURL( qrUrl.toString(), {
-                    width: 160,
+                    width: 174,
                     margin: 0,
                     color: { dark: '#000000', light: '#00000000' }
                 } )
@@ -287,14 +288,14 @@ const app = createApp( {
             document.head.appendChild( styleElement )
 
             // QR session detection
-            const qrSessionParam = params.get( 'qr_session' )
-            if ( qrSessionParam ) {
+            if ( params.get( 'qr_session' ) ) {
                 isQrSession.value = true
-                qrSessionId.value = qrSessionParam
-                fetch( `/qr/scanned/${qrSessionParam}`, { method: 'POST' } ).catch( () => {} )
+                qrSessionId.value = params.get( 'qr_session' )
+                fetch( `/qr/scanned/${qrSessionId.value}`, { method: 'POST' } ).catch( () => {} )
             }
-            else if ( redirect.value && provider_id.value && window.innerWidth > 600 ) {
-                createQrSession()
+            else if ( redirect.value && provider_id.value && window.innerWidth > window.innerHeight ) {
+                await createQrSession()
+                if ( FORCE_STATE ) qrState.value = FORCE_STATE
             }
 
             window.addEventListener( 'beforeunload', () => {
