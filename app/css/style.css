@@ -2,7 +2,7 @@
 
 /* Reset */
 *, *::before, *::after { box-sizing: border-box; }
-body { margin: 0; }
+body { margin: 0; touch-action: manipulation; }
 
 html {
   font-family: 'Inter Variable', sans-serif;
@@ -36,6 +36,7 @@ input {
   border: var(--border-size-1) solid var(--gray-3);
   border-radius: var(--radius-2);
   font: inherit;
+  font-size: max(16px, 1em);
 
   &:focus {
     outline: var(--border-size-2) solid var(--brand-mid, var(--blue-7));
@@ -82,6 +83,7 @@ button {
   opacity: 0;
   animation: appIn .4s var(--ease-3) forwards;
 
+  & > * { max-width: 100dvw; }
   & > :first-child { margin-top: auto; }
   & > :last-child { margin-top: auto; }
 }
