@@ -40,7 +40,10 @@ export function createAuth( { secret, providerId, brandColor = 'blue', redirectA
                 setCookie( c, 'session', token, cookieOpts )
             } catch {}
         }
-        return c.redirect( redirectAfterLogin )
+        const url = new URL( c.req.url )
+        url.searchParams.delete( 'session' )
+        const params = url.searchParams.toString()
+        return c.redirect( redirectAfterLogin + ( params ? '?' + params : '' ) )
     } )
 
     routes.get( '/auth-check', async c => {
