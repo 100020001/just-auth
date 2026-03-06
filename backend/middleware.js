@@ -4,7 +4,7 @@ import { verify } from 'hono/jwt'
 
 const AUTH_URL = 'https://auth.justmorris.com'
 
-export function createAuth( { secret, providerId, brandColor = 'blue', redirectAfterLogin = '/' } ) {
+export function createAuth( { secret, providerId, brandColor = 'blue', redirectAfterLogin = '/', exposeToken = false } ) {
 
     const isProduction = !!process.env.RAILWAY_STATIC_URL
 
@@ -52,7 +52,7 @@ export function createAuth( { secret, providerId, brandColor = 'blue', redirectA
 
         try {
             const user = await verifyToken( token )
-            return c.json( { authenticated: true, user } )
+            return c.json( { authenticated: true, user, ...( exposeToken ? { token } : {} ) } )
         } catch {
             setCookie( c, 'session', '', { ...cookieOpts, maxAge: 0 } )
             return c.json( { authenticated: false, redirectUrl: authUrl( c ) } )
@@ -94,5 +94,5 @@ export function createAuth( { secret, providerId, brandColor = 'blue', redirectA
     // Helper: get session token from cookie (for cross-app redirect endpoints)
     const getToken = c => getCookie( c, 'session' )
 
-    return { routes, sessionTransfer, requireAuth, getToken }
+    return { routes, sessionTransfer, requireAuth, getToken, verifyToken, authUrl }
 }
