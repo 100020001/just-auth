@@ -10,6 +10,10 @@ const FORCE_STATE = false // set to 'expired' | 'ready' | 'scanned' | 'authentic
 
 document.title = sv ? 'Verifiera din e-post' : 'Verify Your Email'
 
+function fullscreenMsg( msg ) {
+    document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100dvh;font-family:system-ui;color:#888;font-size:1.1rem">${msg}</div>`
+}
+
 function postJson( url, body ) {
     return fetch( url, {
         method: 'POST',
@@ -258,12 +262,12 @@ const app = createApp( {
                 const res = await fetch( '/settings' + ( provider_id.value ? `/${provider_id.value}` : '' ) )
                 settings.value = await res.json()
             } catch {
-                document.body.textContent = sv ? 'Kunde inte ladda inställningar. Uppdatera sidan.' : 'Failed to load settings. Please refresh.'
+                fullscreenMsg( sv ? 'Kunde inte ladda inställningar. Uppdatera sidan.' : 'Failed to load settings. Please refresh.' )
                 return
             }
 
             if ( settings.value.error ) {
-                document.body.textContent = settings.value.error
+                fullscreenMsg( settings.value.error )
                 return
             }
 

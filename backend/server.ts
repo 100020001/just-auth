@@ -261,7 +261,7 @@ async function loadProviderConfig(c: AppContext, next: Next) {
     const providerId = c.req.param('provider_id') || (body.provider_id as string)
 
     if (!providerId) {
-        return c.json({ error: 'Missing provider_id' }, 400)
+        return c.json({ error: 'No provider specified' }, 400)
     }
 
     // Load config from environment (e.g., CONFIG_ACME for provider "acme")
