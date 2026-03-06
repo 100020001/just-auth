@@ -1,7 +1,10 @@
 {
-    "name": "kihl-auth",
+    "name": "just-auth",
     "version": "1.0.0",
     "main": "backend/server.ts",
+    "exports": {
+        "./middleware": "./backend/middleware.js"
+    },
     "scripts": {
         "build": "vite build",
         "start": "NODE_ENV=production bun run backend/server.ts",
