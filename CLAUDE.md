@@ -1,14 +1,13 @@
 # just-auth - Passwordless Email OTP Authentication Service
 
 ## Overview
-Shared authentication service for multiple apps. Users verify via email OTP (6-digit PIN). Supports QR login for cross-device auth. Hosted at auth.justmorris.com.
+Shared authentication service for multiple apps. Users verify via email OTP (6-digit PIN). Supports QR login for cross-device auth.
 
 ## Tech Stack
 - **Runtime**: Bun + Hono
 - **Frontend**: Vue 3 (CDN build), Vite, Open Props CSS
 - **Email**: Resend API
 - **JWT**: hono/jwt (HS256, provider-specific secrets)
-- **Deploy**: Railway
 
 ## Directory Structure
 ```
@@ -28,22 +27,19 @@ Providers are configured via environment variables: `CONFIG_<PROVIDER_ID>` (JSON
 ```json
 {
   "friendlyName": "Display Name",
-  "mailDomains": ["company.com"],
-  "sendAddress": "no-reply@company.com",
+  "mailDomains": ["example.com"],
+  "sendAddress": "no-reply@example.com",
   "secret": "<jwt-signing-secret>",
-  "redirectDomains": ["app.company.com", "localhost"],
+  "redirectDomains": ["app.example.com", "localhost"],
   "choices": { "param": "key", "label": "Choose", "options": [...] }
 }
 ```
 
 ### mailDomains Security Model
-- `["company.com"]` — Only `@company.com` emails accepted. Backend enforces via `validateAuth()`.
-- `["*"]` — Any email domain accepted (e.g. mygishop lets any email login, then checks DB for access).
-- **Wildcard does NOT compromise restricted providers.** If kihlstroms has `["kihlstroms.se"]`:
-  - An attacker sending `provider_domain: "*"` is rejected — `"*"` is not in `["kihlstroms.se"]`
-  - An attacker sending `provider_domain: "gmail.com"` is rejected — same reason
-  - The `includes('*')` check only passes when `"*"` is explicitly in the provider's own config
-- **Cross-provider isolation**: Tokens are signed with provider-specific secrets. A mygishop token cannot be verified by kihlstroms.
+- `["example.com"]` — Only `@example.com` emails accepted. Backend enforces via `validateAuth()`.
+- `["*"]` — Any email domain accepted (app checks DB for access).
+- Wildcard does NOT compromise restricted providers — the `includes('*')` check only passes when `"*"` is explicitly in the provider's own config.
+- **Cross-provider isolation**: Tokens are signed with provider-specific secrets.
 - **Session isolation**: `pendingAuthSessions` are keyed by `provider_id:email` to prevent cross-provider collisions.
 - **Domain sanitization**: `sanitizeDomain()` strips control characters, validates format, prevents injection.
 - **Redirect protection**: `redirectDomains` config restricts which hosts can receive the JWT token callback.
@@ -66,7 +62,7 @@ Two languages: English (default) and Swedish. Detected via `navigator.language`.
 ```bash
 bun run dev   # Vite dev server + backend
 ```
-Port configured via `PORT` env var (default 66 locally).
+Port configured via `PORT` env var.
 
 ## Key Security Notes
 - JWT secrets are per-provider — never shared

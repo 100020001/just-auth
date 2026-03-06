@@ -6,12 +6,15 @@ import QRCode from 'qrcode'
 // Lightweight i18n - true if Swedish
 const sv = navigator.language?.startsWith( 'sv' )
 const QR_POLL_MS = 5000
-const FORCE_STATE = false // set to 'expired' | 'ready' | 'scanned' | 'authenticated' to debug
 
 document.title = sv ? 'Verifiera din e-post' : 'Verify Your Email'
 
 function fullscreenMsg( msg ) {
-    document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100dvh;font-family:system-ui;color:#888;font-size:1.1rem">${msg}</div>`
+    document.body.textContent = ''
+    const div = document.createElement( 'div' )
+    div.style.cssText = 'display:flex;align-items:center;justify-content:center;height:100dvh;font-family:system-ui;color:#888;font-size:1.1rem'
+    div.textContent = msg
+    document.body.appendChild( div )
 }
 
 function postJson( url, body ) {
@@ -274,15 +277,16 @@ const app = createApp( {
             brand_color.value = settings.value.brandColor || 'neutral'
             const styleElement = document.createElement( 'style' )
 
+            const sanitizeColor = v => v.replace( /[^a-zA-Z0-9#,\-]/g, '' )
             if ( brand_color.value.includes( ',' ) ) {
-                const [ bg, text ] = brand_color.value.split( ',' ).map( c => c.startsWith('#') ? c : `#${c}` )
+                const [ bg, text ] = brand_color.value.split( ',' ).map( c => sanitizeColor( c.startsWith('#') ? c : `#${c}` ) )
                 styleElement.textContent = `:root {
                     --brand-light: ${bg};
                     --brand-mid: ${bg};
                     --brand-dark: ${text || bg};
                 }`
             } else {
-                const color = brand_color.value === 'neutral' ? 'gray' : brand_color.value
+                const color = sanitizeColor( brand_color.value === 'neutral' ? 'gray' : brand_color.value )
                 styleElement.textContent = `:root {
                     --brand-dark: var(--${color}-0);
                     --brand-mid: var(--${color}-0);
@@ -299,7 +303,6 @@ const app = createApp( {
             }
             else if ( redirect.value && provider_id.value && window.innerWidth > window.innerHeight ) {
                 await createQrSession()
-                if ( FORCE_STATE ) qrState.value = FORCE_STATE
             }
 
             window.addEventListener( 'beforeunload', () => {
@@ -333,4 +336,4 @@ const app = createApp( {
 
 } )
 
-window.__vue__ = app.mount( '#app' )
+app.mount( '#app' )

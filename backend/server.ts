@@ -12,7 +12,7 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 
 /** Pending authentication session stored while awaiting PIN verification */
 interface PendingAuth {
-    token: string
+    email: string
     pin: string
     redirectUrl: string
     expiresAt: number
@@ -151,8 +151,8 @@ function isRateLimitAllowed(
  * @returns Sanitized username containing only alphanumeric, dots, underscores, hyphens
  */
 function sanitizeUsername(input: string): string {
-    const username = input.split('@')[0]
-    return username.replace(/[^a-zA-Z0-9._-]/g, '')
+    const username = input.split('@')[0].toLowerCase()
+    return username.replace(/[^a-z0-9._-]/g, '')
 }
 
 /**
@@ -195,6 +195,7 @@ function isValidRedirectUrl(url: string, allowedDomains?: string[]): boolean {
     try {
         const parsed = new URL(url)
         const isLocalhost = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1'
+        if (isLocalhost && process.env.NODE_ENV === 'production') return false
         if (parsed.protocol !== 'https:' && !isLocalhost) return false
         return !allowedDomains?.length || allowedDomains.includes(parsed.hostname)
     } catch {
@@ -219,10 +220,10 @@ async function parseJsonBody<T>(c: AppContext): Promise<T | null> {
  * Returns built email + sv flag, or an error string.
  *
  * Domain enforcement:
- * - If config.mailDomains contains "*", any valid domain is accepted (e.g. mygishop)
- * - Otherwise, only exact domain matches are allowed (e.g. kihlstroms with ["kihlstroms.se"])
+ * - If config.mailDomains contains "*", any valid domain is accepted
+ * - Otherwise, only exact domain matches are allowed
  * - A user sending provider_domain:"*" is NOT a bypass — it fails the includes() check
- *   against restricted configs because "*" is not in ["kihlstroms.se"]
+ *   against restricted configs
  * - Domain is sanitized to prevent injection (newlines, @, special chars stripped)
  * - Cross-provider isolation is guaranteed by provider-specific JWT secrets
  */
@@ -262,6 +263,10 @@ async function loadProviderConfig(c: AppContext, next: Next) {
 
     if (!providerId) {
         return c.json({ error: 'No provider specified' }, 400)
+    }
+
+    if (!/^[a-zA-Z0-9_-]+$/.test(providerId)) {
+        return c.json({ error: 'Invalid provider ID' }, 400)
     }
 
     // Load config from environment (e.g., CONFIG_ACME for provider "acme")
@@ -373,18 +378,13 @@ app.post('/login', loadProviderConfig, async (c: AppContext) => {
         return c.json({ error: sv ? 'För många inloggningsförsök. Försök igen senare.' : 'Too many login attempts. Try again later.' }, 429)
     }
 
-    // Generate PIN and JWT token
+    // Generate PIN
     const pin = generateSecurePin()
-    const tokenPayload = {
-        mail: email,
-        exp: Math.floor(Date.now() / 1000) + TOKEN_EXPIRY_SECONDS
-    }
-    const token = await sign(tokenPayload, config.secret)
 
     // Store pending session (keyed by provider:email to prevent cross-provider collision)
     const providerId = body.provider_id as string
     pendingAuthSessions.set(`${providerId}:${email}`, {
-        token,
+        email,
         pin,
         redirectUrl,
         expiresAt: Date.now() + PIN_EXPIRY_MS
@@ -394,7 +394,8 @@ app.post('/login', loadProviderConfig, async (c: AppContext) => {
     const emailResult = await sendVerificationEmail(email, pin, config.sendAddress, sv)
 
     if (!emailResult.success) {
-        return c.json({ error: emailResult.error || (sv ? 'Kunde inte skicka e-post' : 'Failed to send email') }, 500)
+        console.error('Email send failed:', emailResult.error)
+        return c.json({ error: sv ? 'Kunde inte skicka e-post' : 'Failed to send email' }, 500)
     }
 
     return c.json({ success: sv ? `Verifieringskod skickad till ${email}` : `Verification code sent to ${email}` })
@@ -444,14 +445,6 @@ app.post('/verify-pin', loadProviderConfig, async (c: AppContext) => {
         return c.json({ error: sv ? 'Ogiltig kod' : 'Invalid code' }, 400)
     }
 
-    // Verify token is still valid
-    try {
-        await verify(session.token, config.secret, 'HS256')
-    } catch {
-        pendingAuthSessions.delete(sessionKey)
-        return c.json({ error: sv ? 'Sessionen har gått ut. Börja om.' : 'Session expired. Please start again.' }, 400)
-    }
-
     // QR flow: validate QR session before consuming the pending auth
     const qrSessionId = body.qr_session as string
     const qrSession = qrSessionId ? qrSessions.get(qrSessionId) : undefined
@@ -467,12 +460,19 @@ app.post('/verify-pin', loadProviderConfig, async (c: AppContext) => {
         }
     }
 
+    // Generate JWT only after successful PIN verification
+    const token = await sign({
+        mail: session.email,
+        provider: providerId,
+        exp: Math.floor(Date.now() / 1000) + TOKEN_EXPIRY_SECONDS
+    }, config.secret)
+
     // Success - cleanup and return token
     pendingAuthSessions.delete(sessionKey)
     pinVerifyRateLimits.delete(email)
 
     if (qrSession) {
-        qrSession.token = session.token
+        qrSession.token = token
         const { secret: _, ...publicConfig } = config
         if ((publicConfig as any).choices) {
             qrSession.status = 'awaiting_choice'
@@ -485,7 +485,7 @@ app.post('/verify-pin', loadProviderConfig, async (c: AppContext) => {
     const { secret: _, ...publicConfig } = config
     return c.json({
         success: {
-            token: session.token,
+            token,
             redirect: session.redirectUrl,
             ...((publicConfig as any).choices && { choose: (publicConfig as any).choices })
         }
@@ -597,6 +597,18 @@ app.post('/qr/choose/:session_id', async (c) => {
     const body = await c.req.json().catch(() => null)
     if (!body?.param || !body?.value) {
         return c.json({ error: 'Missing param or value' }, 400)
+    }
+
+    // Validate param name matches provider config to prevent query param injection
+    const envKey = `CONFIG_${session.providerId.toUpperCase()}`
+    const rawConfig = process.env[envKey]
+    if (rawConfig) {
+        try {
+            const config = JSON.parse(rawConfig)
+            if (config.choices?.param && body.param !== config.choices.param) {
+                return c.json({ error: 'Invalid choice parameter' }, 400)
+            }
+        } catch {}
     }
 
     const url = new URL(session.redirectUrl)
