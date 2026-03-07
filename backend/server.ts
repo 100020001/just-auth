@@ -190,14 +190,17 @@ function secureCompare(a: string, b: string): boolean {
 
 /**
  * Validates redirect URL is HTTPS (or localhost for development).
+ * allowedDomains supports exact match ("app.example.com") and
+ * suffix match (".up.railway.app" matches "myapp.up.railway.app").
+ * Add "localhost" to allowedDomains to permit localhost redirects in production.
  */
 function isValidRedirectUrl(url: string, allowedDomains?: string[]): boolean {
     try {
         const parsed = new URL(url)
         const isLocalhost = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1'
-        if (isLocalhost && process.env.NODE_ENV === 'production') return false
+        if (isLocalhost && process.env.NODE_ENV === 'production' && !allowedDomains?.includes('localhost')) return false
         if (parsed.protocol !== 'https:' && !isLocalhost) return false
-        return !allowedDomains?.length || allowedDomains.includes(parsed.hostname)
+        return !allowedDomains?.length || allowedDomains.some(d => d.startsWith('.') ? parsed.hostname.endsWith(d) : parsed.hostname === d)
     } catch {
         return false
     }
