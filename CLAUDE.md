@@ -71,3 +71,10 @@ Port configured via `PORT` env var.
 - Rate limits: 5 login attempts/min per email, 5 PIN attempts/15min per email
 - Cookies are NOT used — tokens passed via redirect URL `?session=` param
 - Frontend validation is UX only — backend `validateAuth()` is the security gate
+
+## Consumer Middleware Notes
+- `createAuth()` stores the verified JWT in an httpOnly cookie on the consuming app.
+- Default cookie name is `session` for backwards compatibility.
+- Apps sharing a host/path with another provider should pass a scoped name, e.g. `cookieName: "session_kihlstroms"` or `cookieName: "session_mygishop"`.
+- The URL handoff parameter remains `?session=...`; only the stored cookie name changes.
+- Manual cookie readers should use the returned `auth.cookieName` instead of hard-coding `session`.

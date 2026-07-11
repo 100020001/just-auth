@@ -4,7 +4,7 @@ import { verify } from 'hono/jwt'
 
 const AUTH_URL = 'https://auth.justmorris.com'
 
-export function createAuth( { secret, providerId, brandColor = 'blue', redirectAfterLogin = '/', exposeToken = false } ) {
+export function createAuth( { secret, providerId, brandColor = 'blue', redirectAfterLogin = '/', exposeToken = false, cookieName = 'session' } ) {
 
     const isProduction = !!process.env.RAILWAY_STATIC_URL
 
@@ -37,7 +37,7 @@ export function createAuth( { secret, providerId, brandColor = 'blue', redirectA
         if ( token ) {
             try {
                 await verifyToken( token )
-                setCookie( c, 'session', token, cookieOpts )
+                setCookie( c, cookieName, token, cookieOpts )
             } catch {}
         }
         const url = new URL( c.req.url )
@@ -47,20 +47,20 @@ export function createAuth( { secret, providerId, brandColor = 'blue', redirectA
     } )
 
     routes.get( '/auth-check', async c => {
-        const token = getCookie( c, 'session' )
+        const token = getCookie( c, cookieName )
         if ( !token ) return c.json( { authenticated: false, redirectUrl: authUrl( c ) } )
 
         try {
             const user = await verifyToken( token )
             return c.json( { authenticated: true, user, ...( exposeToken ? { token } : {} ) } )
         } catch {
-            setCookie( c, 'session', '', { ...cookieOpts, maxAge: 0 } )
+            setCookie( c, cookieName, '', { ...cookieOpts, maxAge: 0 } )
             return c.json( { authenticated: false, redirectUrl: authUrl( c ) } )
         }
     } )
 
     routes.get( '/logout', c => {
-        setCookie( c, 'session', '', { ...cookieOpts, maxAge: 0 } )
+        setCookie( c, cookieName, '', { ...cookieOpts, maxAge: 0 } )
         return c.redirect( redirectAfterLogin )
     } )
 
@@ -71,7 +71,7 @@ export function createAuth( { secret, providerId, brandColor = 'blue', redirectA
         if ( token && !c.req.path.startsWith( '/auth' ) ) {
             try {
                 await verifyToken( token )
-                setCookie( c, 'session', token, cookieOpts )
+                setCookie( c, cookieName, token, cookieOpts )
                 url.searchParams.delete( 'session' )
                 return c.redirect( url.pathname + url.search )
             } catch {}
@@ -81,7 +81,7 @@ export function createAuth( { secret, providerId, brandColor = 'blue', redirectA
 
     // Middleware: requires valid session cookie
     const requireAuth = async ( c, next ) => {
-        const token = getCookie( c, 'session' )
+        const token = getCookie( c, cookieName )
         if ( !token ) return c.json( { error: 'Unauthorized' }, 401 )
         try {
             await verifyToken( token )
@@ -92,7 +92,7 @@ export function createAuth( { secret, providerId, brandColor = 'blue', redirectA
     }
 
     // Helper: get session token from cookie (for cross-app redirect endpoints)
-    const getToken = c => getCookie( c, 'session' )
+    const getToken = c => getCookie( c, cookieName )
 
-    return { routes, sessionTransfer, requireAuth, getToken, verifyToken, authUrl }
+    return { routes, sessionTransfer, requireAuth, getToken, verifyToken, authUrl, cookieName }
 }
