@@ -1,6 +1,10 @@
 {
     "name": "just-auth",
     "version": "1.0.0",
+    "packageManager": "bun@1.4.4",
+    "engines": {
+        "bun": "1.4.4"
+    },
     "main": "backend/server.ts",
     "exports": {
         "./middleware": "./backend/middleware.js"
