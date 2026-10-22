@@ -44,6 +44,7 @@ Providers are configured via environment variables: `CONFIG_<PROVIDER_ID>` (JSON
 - **Domain sanitization**: `sanitizeDomain()` strips control characters, validates format, prevents injection.
 - **Redirect protection**: `redirectDomains` config restricts which hosts can receive the JWT token callback.
 
+
 ## Endpoints
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
